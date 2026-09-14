@@ -1,0 +1,337 @@
+"use client";
+
+import React, { useState, useEffect, useCallback } from "react";
+import { type ParsedDocument } from "@/features/ingestion/types";
+import { type ComparisonResult, type CompareFilter } from "../types";
+import { BASELINE_TEMPLATES } from "../data/baseline-templates";
+import { RedlineCard } from "./redline-card";
+import { Button } from "@/ui/button";
+import { Badge } from "@/ui/badge";
+import {
+  Scale,
+  GitCompare,
+  ShieldAlert,
+  CheckCircle2,
+  RefreshCw,
+  HelpCircle,
+  FileText,
+  Building2,
+  Bike,
+  Briefcase,
+} from "lucide-react";
+
+interface CompareScreenProps {
+  primaryDocument: ParsedDocument;
+  onBackToAnalysis?: () => void;
+}
+
+export function CompareScreen({
+  primaryDocument,
+  onBackToAnalysis,
+}: CompareScreenProps): JSX.Element {
+  const [compareMode, setCompareMode] = useState<"doc_vs_baseline" | "doc_vs_doc">(
+    "doc_vs_baseline"
+  );
+  const [selectedBaselineKey, setSelectedBaselineKey] = useState<string>("residential_tenancy");
+  const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [filter, setFilter] = useState<CompareFilter>("all");
+
+  const runComparison = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: compareMode,
+          targetDoc: primaryDocument,
+          baselineKey: selectedBaselineKey,
+        }),
+      });
+
+      const data = (await res.json()) as {
+        success?: boolean;
+        result?: ComparisonResult;
+        error?: string;
+      };
+
+      if (data.result) {
+        setComparisonResult(data.result);
+      }
+    } catch {
+      // Fallback
+    } finally {
+      setIsLoading(false);
+    }
+  }, [compareMode, selectedBaselineKey, primaryDocument]);
+
+  useEffect(() => {
+    void runComparison();
+  }, [runComparison]);
+
+  const activeBaseline =
+    BASELINE_TEMPLATES[selectedBaselineKey] || BASELINE_TEMPLATES.residential_tenancy;
+
+  const filteredDiffs =
+    comparisonResult?.differences.filter((diff) => {
+      if (filter === "all") return true;
+      return diff.impactOnUser === filter;
+    }) || [];
+
+  return (
+    <div className="space-y-6">
+      {/* Top Header & Navigation */}
+      <div className="flex flex-col justify-between gap-3 border-b border-border/80 pb-4 sm:flex-row sm:items-center">
+        <div>
+          <div className="flex items-center space-x-2">
+            <h2 className="font-serif text-xl font-bold text-primary">
+              Contract Compare &amp; Redline Tracked Changes
+            </h2>
+            <Badge variant="brass">
+              <GitCompare className="mr-1 h-3 w-3" />
+              Redline Metaphor
+            </Badge>
+          </div>
+          <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+            Evaluating whether revisions FAVOR or DISADVANTAGE the citizen
+          </p>
+        </div>
+
+        {onBackToAnalysis && (
+          <Button variant="outline" size="sm" onClick={onBackToAnalysis}>
+            <FileText className="mr-2 h-3.5 w-3.5" />
+            Back to Document Analysis
+          </Button>
+        )}
+      </div>
+
+      {/* Target Selector: Baseline Template vs Doc vs Doc */}
+      <div className="shadow-xs space-y-4 rounded-lg border border-border bg-card p-5">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <span className="font-serif text-sm font-semibold text-primary">
+            Select Comparison Baseline:
+          </span>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCompareMode("doc_vs_baseline")}
+              className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                compareMode === "doc_vs_baseline"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Doc vs Sourced Baseline
+            </button>
+            <button
+              type="button"
+              onClick={() => setCompareMode("doc_vs_doc")}
+              className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                compareMode === "doc_vs_doc"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Doc vs Second Document
+            </button>
+          </div>
+        </div>
+
+        {/* Baseline Template Options */}
+        {compareMode === "doc_vs_baseline" ? (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => setSelectedBaselineKey("residential_tenancy")}
+              className={`flex flex-col rounded border p-3 text-left transition-all ${
+                selectedBaselineKey === "residential_tenancy"
+                  ? "shadow-xs border-[#B08D57] bg-[#FAF4E8]"
+                  : "border-border bg-card hover:bg-secondary/40"
+              }`}
+            >
+              <div className="mb-1 flex items-center justify-between">
+                <span className="flex items-center text-xs font-semibold text-primary">
+                  <Building2 className="mr-1.5 h-3.5 w-3.5 text-[#B08D57]" />
+                  Residential Tenancy
+                </span>
+                <Badge variant="brass" className="text-[10px]">
+                  Model Tenancy Act
+                </Badge>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Statutory deposit ceilings (2 mo.) &amp; equal 60-day notice rules.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedBaselineKey("gig_worker_agreement")}
+              className={`flex flex-col rounded border p-3 text-left transition-all ${
+                selectedBaselineKey === "gig_worker_agreement"
+                  ? "shadow-xs border-[#B08D57] bg-[#FAF4E8]"
+                  : "border-border bg-card hover:bg-secondary/40"
+              }`}
+            >
+              <div className="mb-1 flex items-center justify-between">
+                <span className="flex items-center text-xs font-semibold text-primary">
+                  <Bike className="mr-1.5 h-3.5 w-3.5 text-[#B08D57]" />
+                  Gig Delivery Partner
+                </span>
+                <Badge variant="brass" className="text-[10px]">
+                  Fairwork Standards
+                </Badge>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Fair deactivation notice (7 days) &amp; capped mutual indemnity.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedBaselineKey("employment_offer")}
+              className={`flex flex-col rounded border p-3 text-left transition-all ${
+                selectedBaselineKey === "employment_offer"
+                  ? "shadow-xs border-[#B08D57] bg-[#FAF4E8]"
+                  : "border-border bg-card hover:bg-secondary/40"
+              }`}
+            >
+              <div className="mb-1 flex items-center justify-between">
+                <span className="flex items-center text-xs font-semibold text-primary">
+                  <Briefcase className="mr-1.5 h-3.5 w-3.5 text-[#B08D57]" />
+                  Employment Offer
+                </span>
+                <Badge variant="brass" className="text-[10px]">
+                  Contract Act §27
+                </Badge>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Void post-termination non-competes &amp; fair mutual notice.
+              </p>
+            </button>
+          </div>
+        ) : (
+          <div className="rounded border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+            Comparing uploaded contract with alternative counter-party revision.
+          </div>
+        )}
+
+        {/* Provenance note */}
+        <div className="flex items-center pt-1 font-mono text-[11px] text-muted-foreground">
+          <Scale className="mr-1.5 h-3.5 w-3.5 text-[#B08D57]" />
+          <span>
+            Baseline Reference:{" "}
+            <span className="font-medium text-primary">{activeBaseline.sourcedReference}</span>{" "}
+            (Sourced non-LLM statutory norm)
+          </span>
+        </div>
+      </div>
+
+      {/* Comparison Results & Redline Overview */}
+      {isLoading ? (
+        <div className="space-y-3 rounded border border-border bg-card p-12 text-center">
+          <RefreshCw className="mx-auto h-6 w-6 animate-spin text-[#B08D57]" />
+          <p className="font-serif text-sm font-medium text-primary">
+            Generating tracked-changes redline comparison...
+          </p>
+          <p className="font-mono text-xs text-muted-foreground">
+            Evaluating favorability against fair practice standards
+          </p>
+        </div>
+      ) : comparisonResult ? (
+        <div className="space-y-5">
+          {/* Summary Metric Ribbon */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="flex items-center justify-between rounded-md border border-[#8C2F39]/40 bg-[#F7ECEE] p-4">
+              <div className="space-y-0.5">
+                <span className="font-mono text-xs font-semibold uppercase tracking-wider text-[#8C2F39]">
+                  Disadvantages You
+                </span>
+                <div className="font-serif text-2xl font-bold text-[#8C2F39]">
+                  {comparisonResult.disadvantageousCount}
+                </div>
+              </div>
+              <ShieldAlert className="h-8 w-8 text-[#8C2F39]/80" />
+            </div>
+
+            <div className="flex items-center justify-between rounded-md border border-[#3F6C51]/40 bg-[#EAF2EC] p-4">
+              <div className="space-y-0.5">
+                <span className="font-mono text-xs font-semibold uppercase tracking-wider text-[#3F6C51]">
+                  Favors You
+                </span>
+                <div className="font-serif text-2xl font-bold text-[#3F6C51]">
+                  {comparisonResult.favorableCount}
+                </div>
+              </div>
+              <CheckCircle2 className="h-8 w-8 text-[#3F6C51]/80" />
+            </div>
+
+            <div className="flex items-center justify-between rounded-md border border-border bg-secondary/50 p-4">
+              <div className="space-y-0.5">
+                <span className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Neutral Revisions
+                </span>
+                <div className="font-serif text-2xl font-bold text-primary">
+                  {comparisonResult.neutralCount}
+                </div>
+              </div>
+              <HelpCircle className="h-8 w-8 text-muted-foreground/60" />
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="flex items-center justify-between border-b border-border/80 pb-3">
+            <div className="flex items-center gap-1.5">
+              <span className="mr-2 font-mono text-xs text-muted-foreground">Filter Diffs:</span>
+              <button
+                type="button"
+                onClick={() => setFilter("all")}
+                className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                  filter === "all"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                All ({comparisonResult.differences.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("disadvantageous")}
+                className={`flex items-center rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                  filter === "disadvantageous"
+                    ? "bg-[#8C2F39] text-white"
+                    : "bg-[#F7ECEE] text-[#8C2F39]"
+                }`}
+              >
+                <ShieldAlert className="mr-1 h-3 w-3" />
+                Disadvantages ({comparisonResult.disadvantageousCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("favorable")}
+                className={`flex items-center rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                  filter === "favorable" ? "bg-[#3F6C51] text-white" : "bg-[#EAF2EC] text-[#3F6C51]"
+                }`}
+              >
+                <CheckCircle2 className="mr-1 h-3 w-3" />
+                Favors ({comparisonResult.favorableCount})
+              </button>
+            </div>
+
+            <span className="font-mono text-xs text-muted-foreground">
+              {filteredDiffs.length} clause comparison(s) shown
+            </span>
+          </div>
+
+          {/* Redline Cards */}
+          <div className="space-y-4">
+            {filteredDiffs.map((diff) => (
+              <RedlineCard key={diff.id} difference={diff} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}

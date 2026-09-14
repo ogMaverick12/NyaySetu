@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Parchment Base */
+    --background: 42 41% 94%; /* #F7F3EA */
+    --foreground: 214 28% 15%; /* #1B2430 */
+
+    /* Card Surfaces */
+    --card: 42 35% 97%; /* #FBF9F4 */
+    --card-foreground: 214 28% 15%;
+
+    --popover: 42 35% 97%;
+    --popover-foreground: 214 28% 15%;
+
+    /* Ink Navy Primary */
+    --primary: 214 28% 15%; /* #1B2430 */
+    --primary-foreground: 42 41% 96%;
+
+    /* Warm Secondary */
+    --secondary: 40 25% 90%; /* #EFE8DC */
+    --secondary-foreground: 214 28% 15%;
+
+    /* Muted Slate / Toned Down */
+    --muted: 40 20% 90%;
+    --muted-foreground: 216 14% 38%; /* #525D6B */
+
+    /* Brass Accent */
+    --accent: 36 36% 52%; /* #B08D57 */
+    --accent-foreground: 42 41% 98%;
+
+    /* Burgundy Destructive */
+    --destructive: 354 50% 37%; /* #8C2F39 */
+    --destructive-foreground: 0 0% 98%;
+
+    /* Borders & Inputs */
+    --border: 39 24% 83%; /* #E0D7C6 */
+    --input: 39 24% 83%;
+    --ring: 36 36% 52%; /* #B08D57 */
+    --radius: 0.375rem;
+
+    /* Semantic Risk System */
+    --risk-low: 144 26% 34%; /* #3F6C51 */
+    --risk-low-bg: 140 25% 94%; /* #EAF2EC */
+    --risk-caution: 38 61% 47%; /* #C08A2E */
+    --risk-caution-bg: 40 60% 95%; /* #FAF4E8 */
+    --risk-high: 354 50% 37%; /* #8C2F39 */
+    --risk-high-bg: 350 40% 95%; /* #F8ECEE */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased selection:bg-accent/20 selection:text-primary;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-serif tracking-tight text-primary;
+  }
+}

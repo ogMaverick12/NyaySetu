@@ -1,0 +1,7 @@
+node_modules/
+.next/
+out/
+coverage/
+.husky/
+package-lock.json
+0*.md
