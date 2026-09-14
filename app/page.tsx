@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Badge } from "@/ui/badge";
 import { fadeIn, slideUp, clauseContainer, clauseCardReveal } from "@/motion-variants";
 import { ShieldAlert, ArrowRight, CheckCircle2, AlertTriangle } from "lucide-react";
+import { NyaySetuLogo } from "@/components/nyaysetu-logo";
 
 import { IntakeDesk, type ParsedDocument } from "@/features/ingestion";
 import { ClausePanel, useClauseExtraction } from "@/features/extraction";
@@ -94,9 +95,12 @@ function NyaySetuApp(): JSX.Element {
                 <span className="text-border">•</span>
                 <Badge variant="brass">Gemini Antigravity</Badge>
               </div>
-              <h1 className="text-4xl font-bold tracking-tight text-primary sm:text-5xl">
-                {t.appName}
-              </h1>
+              <div className="flex items-center gap-3">
+                <NyaySetuLogo size={56} className="flex-shrink-0" />
+                <h1 className="text-4xl font-bold tracking-tight text-primary sm:text-5xl">
+                  {t.appName}
+                </h1>
+              </div>
               <p className="max-w-2xl text-base text-muted-foreground">{t.appDescription}</p>
             </div>
 

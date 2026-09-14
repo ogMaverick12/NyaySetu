@@ -16,7 +16,15 @@ export class OpenRouterProvider implements LLMProvider {
   private readonly apiKey: string | undefined;
   private readonly modelName: string;
 
-  constructor(apiKey?: string, modelName = "meta-llama/llama-3.3-70b-instruct") {
+  // Model priority (OpenRouter):
+  //   1. google/gemini-flash-1.5          — free tier, fast, multimodal, great OCR + legal reasoning
+  //   2. google/gemini-2.5-flash-preview  — paid, more capable, use if free quota exhausted
+  //   3. google/gemma-3-27b-it:free       — free fallback if Gemini quota hard-blocked
+  //   4. mistralai/mistral-nemo:free      — last-resort non-Google free fallback
+  constructor(
+    apiKey?: string,
+    modelName = process.env.OPENROUTER_MODEL ?? "google/gemini-flash-1.5"
+  ) {
     this.apiKey = apiKey || process.env.OPENROUTER_API_KEY;
     this.modelName = modelName;
   }
