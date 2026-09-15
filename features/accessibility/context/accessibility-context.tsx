@@ -13,6 +13,8 @@ interface AccessibilityContextValue {
   isLowBandwidth: boolean;
   toggleLowBandwidth: () => void;
   prefersReducedMotion: boolean;
+  isDarkMode: boolean;
+  toggleDarkMode: () => void;
   t: TranslationDictionary;
 }
 
@@ -22,6 +24,7 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
   const [language, setLanguage] = useState<SupportedLanguage>("en");
   const [isLowBandwidth, setIsLowBandwidth] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Detect system prefers-reduced-motion
   useEffect(() => {
@@ -35,12 +38,35 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     }
   }, []);
 
+  // Initialise dark mode from localStorage or system preference
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = localStorage.getItem("nyaysetu_dark_mode");
+    const prefersDark =
+      stored !== null
+        ? stored === "true"
+        : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    setIsDarkMode(prefersDark);
+    document.documentElement.classList.toggle("dark", prefersDark);
+  }, []);
+
   // Synchronize low-bandwidth class to document body
   const toggleLowBandwidth = () => {
     setIsLowBandwidth((prev) => {
       const next = !prev;
       if (typeof document !== "undefined") {
         document.documentElement.classList.toggle("low-bandwidth", next);
+      }
+      return next;
+    });
+  };
+
+  const toggleDarkMode = () => {
+    setIsDarkMode((prev) => {
+      const next = !prev;
+      if (typeof document !== "undefined") {
+        document.documentElement.classList.toggle("dark", next);
+        localStorage.setItem("nyaysetu_dark_mode", String(next));
       }
       return next;
     });
@@ -56,6 +82,8 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
         isLowBandwidth,
         toggleLowBandwidth,
         prefersReducedMotion,
+        isDarkMode,
+        toggleDarkMode,
         t,
       }}
     >
@@ -70,6 +98,8 @@ const DEFAULT_VALUE: AccessibilityContextValue = {
   isLowBandwidth: false,
   toggleLowBandwidth: () => {},
   prefersReducedMotion: false,
+  isDarkMode: false,
+  toggleDarkMode: () => {},
   t: TRANSLATIONS.en,
 };
 

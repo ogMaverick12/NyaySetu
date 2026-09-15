@@ -16,15 +16,20 @@ export class OpenRouterProvider implements LLMProvider {
   private readonly apiKey: string | undefined;
   private readonly modelName: string;
 
-  // Model priority (OpenRouter) — set OPENROUTER_MODEL env var to override:
-  //   :free suffix = free with ~50 req/day on unfunded account, ~1000/day with $10+ deposit
-  //   1. deepseek/deepseek-chat-v3-0324:free  — best free model for legal reasoning, fast
-  //   2. google/gemma-3-27b-it:free            — free Google model, good comprehension
-  //   3. meta-llama/llama-3.3-70b-instruct:free — solid fallback, widely supported
-  //   NOTE: google/gemini-* models are NOT free on OpenRouter.
+  // OpenRouter free model priority — override via OPENROUTER_MODEL env var:
+  //
+  //  ACCURACY + REASONING (recommended for legal docs):
+  //   • google/gemma-3-27b-it:free       ← DEFAULT — 27B Google model, best legal comprehension
+  //   • nvidia/nemotron-3-super:free      — very strong reasoning, slightly slower
+  //
+  //  SPEED (if latency matters more):
+  //   • nvidia/nemotron-3.5-lightning:free — fastest, good for short contracts
+  //   • google/gemma-3-12b-it:free         — lighter Gemma, still solid
+  //
+  //  NOTE: google/gemini-* models are NOT free on OpenRouter.
   constructor(
     apiKey?: string,
-    modelName = process.env.OPENROUTER_MODEL ?? "deepseek/deepseek-chat-v3-0324:free"
+    modelName = process.env.OPENROUTER_MODEL ?? "google/gemma-3-27b-it:free"
   ) {
     this.apiKey = apiKey || process.env.OPENROUTER_API_KEY;
     this.modelName = modelName;

@@ -49,6 +49,47 @@
     --risk-high: 354 50% 37%; /* #8C2F39 */
     --risk-high-bg: 350 40% 95%; /* #F8ECEE */
   }
+
+  .dark {
+    /* Deep charcoal — not pure black, feels like a legal ledger at night */
+    --background: 220 20% 10%; /* #151C26 */
+    --foreground: 42 30% 88%; /* #EDE5D5 */
+
+    --card: 220 18% 14%; /* #1D2535 */
+    --card-foreground: 42 30% 88%;
+
+    --popover: 220 18% 14%;
+    --popover-foreground: 42 30% 88%;
+
+    /* Primary becomes parchment-cream on dark */
+    --primary: 42 30% 88%; /* #EDE5D5 */
+    --primary-foreground: 220 20% 10%;
+
+    --secondary: 220 16% 20%; /* #283040 */
+    --secondary-foreground: 42 30% 88%;
+
+    --muted: 220 16% 18%;
+    --muted-foreground: 216 12% 58%; /* #8A94A1 */
+
+    /* Brass stays — slightly brightened for dark bg */
+    --accent: 36 45% 58%; /* #C49A3C */
+    --accent-foreground: 220 20% 10%;
+
+    --destructive: 354 55% 48%; /* #B33A46 */
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 16% 22%; /* #2C3546 */
+    --input: 220 16% 22%;
+    --ring: 36 45% 58%;
+
+    /* Risk colours: slightly desaturated for dark mode legibility */
+    --risk-low: 144 30% 45%; /* #4D8A64 */
+    --risk-low-bg: 144 20% 14%; /* #1A2B20 */
+    --risk-caution: 38 60% 52%; /* #D49A35 */
+    --risk-caution-bg: 38 30% 14%; /* #2B2110 */
+    --risk-high: 354 55% 48%; /* #B33A46 */
+    --risk-high-bg: 354 30% 14%; /* #2B1519 */
+  }
 }
 
 @layer base {

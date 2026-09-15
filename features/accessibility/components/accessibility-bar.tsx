@@ -2,7 +2,7 @@
 
 import { useAccessibility } from "../context/accessibility-context";
 import { type SupportedLanguage } from "../i18n/translations";
-import { Globe, WifiOff, Wifi, Eye } from "lucide-react";
+import { Globe, WifiOff, Wifi, Eye, Moon, Sun } from "lucide-react";
 import { DeleteDataButton } from "@/features/security";
 
 export interface AccessibilityBarProps {
@@ -10,8 +10,16 @@ export interface AccessibilityBarProps {
 }
 
 export function AccessibilityBar({ onDataDeleted }: AccessibilityBarProps = {}): JSX.Element {
-  const { language, setLanguage, isLowBandwidth, toggleLowBandwidth, prefersReducedMotion, t } =
-    useAccessibility();
+  const {
+    language,
+    setLanguage,
+    isLowBandwidth,
+    toggleLowBandwidth,
+    prefersReducedMotion,
+    isDarkMode,
+    toggleDarkMode,
+    t,
+  } = useAccessibility();
 
   const languages: Array<{ code: SupportedLanguage; label: string }> = [
     { code: "en", label: "English" },
@@ -88,6 +96,31 @@ export function AccessibilityBar({ onDataDeleted }: AccessibilityBarProps = {}):
               <>
                 <Wifi className="h-3 w-3 text-[#525D6B]" />
                 <span>{t.accessibility.lowBandwidth}</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={toggleDarkMode}
+            aria-pressed={isDarkMode}
+            aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1 font-mono text-[11px] transition-colors focus:outline-none focus:ring-1 focus:ring-[#B08D57] ${
+              isDarkMode
+                ? "border-[#C49A3C] bg-[#1D2535] text-[#C49A3C]"
+                : "border-[#E0D7C6] bg-white text-[#1B2430] hover:bg-[#EFE8DC]"
+            }`}
+          >
+            {isDarkMode ? (
+              <>
+                <Sun className="h-3 w-3" />
+                <span>Light</span>
+              </>
+            ) : (
+              <>
+                <Moon className="h-3 w-3" />
+                <span>Dark</span>
               </>
             )}
           </button>
