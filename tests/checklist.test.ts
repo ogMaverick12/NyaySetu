@@ -69,6 +69,38 @@ const sampleClauses: Clause[] = [
   },
 ];
 
+// ── Mock-lease-agreement clauses (the ones reported as broken) ─────────────
+const mockLeaseClauses: Clause[] = [
+  {
+    id: "cl_lockin",
+    page: 2,
+    sourceText:
+      "The tenancy shall have a lock-in period of 11 months. If the Tenant vacates before the expiry of the lock-in period, the Tenant shall forfeit the security deposit and pay two months' rent as early-exit penalty.",
+    type: "lock_in",
+    plainSummary:
+      "You cannot leave for 11 months. If you leave early you lose your deposit and pay 2 months rent as penalty.",
+    riskLevel: "high-risk",
+    rationale: "Disproportionate forfeiture — both deposit and additional penalty.",
+  },
+  {
+    id: "cl_escalation",
+    page: 3,
+    sourceText:
+      "The monthly rent shall be increased by 10% at the end of every 12-month period without further notice.",
+    type: "rent_escalation",
+    plainSummary: "Rent goes up 10% every year automatically with no further notice.",
+    riskLevel: "caution",
+    rationale: "Automatic escalation without notice or negotiation opportunity.",
+  },
+];
+
+const mockLeaseDoc: ParsedDocument = {
+  ...sampleDoc,
+  id: "doc_mock_lease",
+  filename: "mock-lease-agreement.pdf",
+  fullText: mockLeaseClauses.map((c) => c.sourceText).join("\n"),
+};
+
 describe("Action Checklist & Legal Memo Export (PRD F6)", () => {
   describe("ChecklistItemSchema Validation", () => {
     it("should validate a valid action item", () => {
@@ -78,9 +110,7 @@ describe("Action Checklist & Legal Memo Export (PRD F6)", () => {
         kind: "action" as const,
         sourceClauseId: "cl_deposit",
       };
-
-      const result = ChecklistItemSchema.safeParse(validAction);
-      expect(result.success).toBe(true);
+      expect(ChecklistItemSchema.safeParse(validAction).success).toBe(true);
     });
 
     it("should validate a valid lawyer question", () => {
@@ -90,33 +120,29 @@ describe("Action Checklist & Legal Memo Export (PRD F6)", () => {
         kind: "lawyer_question" as const,
         sourceClauseId: "cl_notice",
       };
-
-      const result = ChecklistItemSchema.safeParse(validQuestion);
-      expect(result.success).toBe(true);
+      expect(ChecklistItemSchema.safeParse(validQuestion).success).toBe(true);
     });
 
     it("should reject an item with invalid kind", () => {
-      const invalidItem = {
-        id: "item_x",
-        text: "Some task",
-        kind: "todo",
-        sourceClauseId: null,
-      };
-
-      const result = ChecklistItemSchema.safeParse(invalidItem);
-      expect(result.success).toBe(false);
+      expect(
+        ChecklistItemSchema.safeParse({
+          id: "item_x",
+          text: "Some task",
+          kind: "todo",
+          sourceClauseId: null,
+        }).success
+      ).toBe(false);
     });
 
     it("should reject an item with empty text", () => {
-      const invalidItem = {
-        id: "act_2",
-        text: "",
-        kind: "action",
-        sourceClauseId: null,
-      };
-
-      const result = ChecklistItemSchema.safeParse(invalidItem);
-      expect(result.success).toBe(false);
+      expect(
+        ChecklistItemSchema.safeParse({
+          id: "act_2",
+          text: "",
+          kind: "action",
+          sourceClauseId: null,
+        }).success
+      ).toBe(false);
     });
   });
 
@@ -127,15 +153,12 @@ describe("Action Checklist & Legal Memo Export (PRD F6)", () => {
       expect(memo.highRiskCount).toBe(2);
       expect(memo.cautionCount).toBe(1);
       expect(memo.totalClauses).toBe(3);
-
-      // Verify actions generated
       expect(memo.actionItems.length).toBeGreaterThanOrEqual(3);
+
       const noticeAction = memo.actionItems.find((a) => a.sourceClauseId === "cl_notice");
       expect(noticeAction).toBeDefined();
       expect(noticeAction?.text).toContain("reciprocal notice");
 
-      // Verify lawyer questions generated
-      expect(memo.lawyerQuestions.length).toBeGreaterThanOrEqual(2);
       const noticeQuestion = memo.lawyerQuestions.find((q) => q.sourceClauseId === "cl_notice");
       expect(noticeQuestion).toBeDefined();
       expect(noticeQuestion?.text).toContain("Section 106");
@@ -146,22 +169,69 @@ describe("Action Checklist & Legal Memo Export (PRD F6)", () => {
       expect(nonCompeteQuestion).toBeDefined();
       expect(nonCompeteQuestion?.text).toContain("Section 27");
 
-      // Verify statutory citations populated
-      expect(memo.statutoryCitations).toContain("Transfer of Property Act, 1882 (Sec 106)");
       expect(memo.statutoryCitations).toContain(
-        "Indian Contract Act, 1872 (Sec 27: Agreement in Restraint of Trade Void)"
+        "Transfer of Property Act, 1882 (Sec 106 — Notice to Quit)"
+      );
+      expect(memo.statutoryCitations).toContain(
+        "Indian Contract Act, 1872 (Sec 27 — Agreement in Restraint of Trade Void)"
       );
     });
 
     it("should incorporate citizen-bookmarked questions from Q&A consultation", () => {
-      const bookmarked = ["Can the landlord deduct painting costs without producing invoices?"];
-
-      const memo = generateLegalMemo(sampleDoc, sampleClauses, bookmarked);
+      const memo = generateLegalMemo(sampleDoc, sampleClauses, [
+        "Can the landlord deduct painting costs without producing invoices?",
+      ]);
       const found = memo.lawyerQuestions.find((q) => q.text.includes("deduct painting costs"));
-
       expect(found).toBeDefined();
       expect(found?.kind).toBe("lawyer_question");
       expect(found?.sourceClauseId).toBeNull();
+    });
+  });
+
+  // ── Statutory citation correctness (the reported bug) ────────────────────
+  describe("Statutory Citation Correctness — mock-lease-agreement.pdf", () => {
+    it("lock-in clause: cites ICA Sec 74, NOT TPA Sec 106", () => {
+      const memo = generateLegalMemo(mockLeaseDoc, mockLeaseClauses);
+
+      const lockInQuestion = memo.lawyerQuestions.find((q) => q.sourceClauseId === "cl_lockin");
+      expect(lockInQuestion).toBeDefined();
+
+      // Must mention ICA Sec 74 (penalty / liquidated damages)
+      expect(lockInQuestion?.text).toContain("Section 74");
+
+      // Must NOT cite TPA Sec 106 (termination notice) — wrong subject matter
+      expect(lockInQuestion?.text).not.toContain("Section 106");
+      expect(lockInQuestion?.text).not.toContain("Transfer of Property Act");
+
+      // Citation list must include ICA Sec 74
+      expect(memo.statutoryCitations.join(" ")).toContain("Sec 74");
+      // Citation list must NOT include TPA Sec 106
+      expect(memo.statutoryCitations.join(" ")).not.toContain("Sec 106");
+    });
+
+    it("rent-escalation clause: does NOT cite TPA Sec 106", () => {
+      const memo = generateLegalMemo(mockLeaseDoc, mockLeaseClauses);
+
+      // Escalation is caution-level — may not generate a question, but if it does, must not cite Sec 106
+      const escalationQuestion = memo.lawyerQuestions.find(
+        (q) => q.sourceClauseId === "cl_escalation"
+      );
+      if (escalationQuestion) {
+        expect(escalationQuestion.text).not.toContain("Section 106");
+        expect(escalationQuestion.text).not.toContain("Transfer of Property Act");
+      }
+
+      // No TPA Sec 106 anywhere in citation list
+      expect(memo.statutoryCitations.join(" ")).not.toContain("Sec 106");
+    });
+
+    it("lock-in action item concerns forfeiture/penalty, not notice negotiation", () => {
+      const memo = generateLegalMemo(mockLeaseDoc, mockLeaseClauses);
+      const lockInAction = memo.actionItems.find((a) => a.sourceClauseId === "cl_lockin");
+
+      expect(lockInAction).toBeDefined();
+      expect(lockInAction?.text.toLowerCase()).toMatch(/forfeit|penalt|lock.?in|early.?exit/);
+      expect(lockInAction?.text.toLowerCase()).not.toContain("reciprocal notice");
     });
   });
 
@@ -169,7 +239,6 @@ describe("Action Checklist & Legal Memo Export (PRD F6)", () => {
     it("should build a valid jsPDF instance from legal memo data", () => {
       const memo = generateLegalMemo(sampleDoc, sampleClauses);
       const doc = buildLegalMemoPdf(memo);
-
       expect(doc).toBeDefined();
       expect(doc.internal.pages.length).toBeGreaterThanOrEqual(1);
     });
