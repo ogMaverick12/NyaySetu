@@ -45,6 +45,8 @@ function NyaySetuApp(): JSX.Element {
   const { t, isLowBandwidth } = useAccessibility();
   const [activeView, setActiveView] = useState<ActiveAppView>("intake");
   const [activeDoc, setActiveDoc] = useState<ParsedDocument | null>(null);
+  // Bumping this key forces IntakeDesk to remount and clear its internal state
+  const [intakeDeskKey, setIntakeDeskKey] = useState(0);
   const {
     clauses,
     state: extractionState,
@@ -67,10 +69,20 @@ function NyaySetuApp(): JSX.Element {
     }
   };
 
+  // Called by the "Proceed to Clause Risk Analysis" button inside IntakeDesk
+  const handleProceedToAnalysis = () => {
+    if (activeDoc) {
+      void extractClauses(activeDoc);
+      setActiveView("analysis");
+    }
+  };
+
   const handleDataDeleted = () => {
     setActiveDoc(null);
     resetClauses();
     setActiveView("intake");
+    // Force IntakeDesk remount to clear its internal document/status state
+    setIntakeDeskKey((k) => k + 1);
   };
 
   return (
@@ -197,7 +209,11 @@ function NyaySetuApp(): JSX.Element {
                 animate="visible"
                 className="space-y-4"
               >
-                <IntakeDesk onDocumentParsed={handleDocumentParsed} />
+                <IntakeDesk
+                  key={intakeDeskKey}
+                  onDocumentParsed={handleDocumentParsed}
+                  onProceedToAnalysis={handleProceedToAnalysis}
+                />
 
                 {activeDoc && (
                   <div className="flex flex-col items-start justify-between gap-3 rounded border border-[#684B1E]/40 bg-card p-4 shadow-sm sm:flex-row sm:items-center">

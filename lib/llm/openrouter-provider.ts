@@ -16,15 +16,15 @@ export class OpenRouterProvider implements LLMProvider {
   private readonly apiKey: string | undefined;
   private readonly modelName: string;
 
-  // Model priority (OpenRouter):
-  //   1. google/gemini-2.0-flash-001      — stable, fast, multimodal, good OCR + legal reasoning
-  //   2. google/gemini-2.0-flash-exp:free — free experimental variant (same capability)
-  //   3. google/gemma-3-27b-it:free       — free fallback if Gemini quota exhausted
-  //   NOTE: "google/gemini-flash-1.5" is NOT a valid OpenRouter ID.
-  //         Correct IDs: google/gemini-1.5-flash, google/gemini-2.0-flash-001
+  // Model priority (OpenRouter) — set OPENROUTER_MODEL env var to override:
+  //   :free suffix = free with ~50 req/day on unfunded account, ~1000/day with $10+ deposit
+  //   1. deepseek/deepseek-chat-v3-0324:free  — best free model for legal reasoning, fast
+  //   2. google/gemma-3-27b-it:free            — free Google model, good comprehension
+  //   3. meta-llama/llama-3.3-70b-instruct:free — solid fallback, widely supported
+  //   NOTE: google/gemini-* models are NOT free on OpenRouter.
   constructor(
     apiKey?: string,
-    modelName = process.env.OPENROUTER_MODEL ?? "google/gemini-2.0-flash-001"
+    modelName = process.env.OPENROUTER_MODEL ?? "deepseek/deepseek-chat-v3-0324:free"
   ) {
     this.apiKey = apiKey || process.env.OPENROUTER_API_KEY;
     this.modelName = modelName;

@@ -11,9 +11,13 @@ import { FileText, Upload, CheckCircle2, AlertCircle, RefreshCw, Eye, Shield } f
 
 interface IntakeDeskProps {
   onDocumentParsed?: (doc: ParsedDocument) => void;
+  onProceedToAnalysis?: () => void;
 }
 
-export function IntakeDesk({ onDocumentParsed }: IntakeDeskProps): JSX.Element {
+export function IntakeDesk({
+  onDocumentParsed,
+  onProceedToAnalysis,
+}: IntakeDeskProps): JSX.Element {
   const { document, status, selectedFile, progress, selectFile, ingestFile, reset } =
     useDocumentIngestion();
 
@@ -338,7 +342,7 @@ export function IntakeDesk({ onDocumentParsed }: IntakeDeskProps): JSX.Element {
                   </div>
 
                   <div className="flex justify-end pt-2">
-                    <Button variant="brass" size="sm">
+                    <Button variant="brass" size="sm" onClick={() => onProceedToAnalysis?.()}>
                       <Eye className="mr-2 h-3.5 w-3.5" />
                       Proceed to Clause Risk Analysis
                     </Button>
