@@ -16,7 +16,9 @@ export class GeminiProvider implements LLMProvider {
   private readonly apiKey: string | undefined;
   private readonly modelName: string;
 
-  constructor(apiKey?: string, modelName = "gemini-1.5-flash") {
+  // Model: gemini-2.5-flash — fast, large context, great for long legal contracts
+  // Override via GEMINI_MODEL env var in Vercel without redeploying.
+  constructor(apiKey?: string, modelName = process.env.GEMINI_MODEL ?? "gemini-2.5-flash") {
     this.apiKey = apiKey || process.env.GEMINI_API_KEY;
     this.modelName = modelName;
   }
