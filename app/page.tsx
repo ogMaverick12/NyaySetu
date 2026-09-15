@@ -419,6 +419,7 @@ function NyaySetuApp(): JSX.Element {
                 <DocumentAnalysisScreen
                   document={activeDoc}
                   clauses={clauses}
+                  extractionStatus={extractionState.status}
                   flaggedForLawyer={flaggedForLawyer}
                   onToggleFlag={toggleFlagForLawyer}
                   onProceedToCompare={() => setActiveView("compare")}

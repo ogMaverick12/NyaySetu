@@ -17,10 +17,13 @@ import {
   BookOpen,
   Volume2,
   VolumeX,
+  RefreshCw,
+  FileSearch,
 } from "lucide-react";
 
 interface MarginNotesColumnProps {
   clauses: Clause[];
+  extractionStatus: "idle" | "extracting" | "success" | "error";
   selectedClause: Clause | null;
   onSelectClause: (clause: Clause) => void;
   flaggedForLawyer: Set<string>;
@@ -30,6 +33,7 @@ interface MarginNotesColumnProps {
 
 export function MarginNotesColumn({
   clauses,
+  extractionStatus,
   selectedClause,
   onSelectClause,
   flaggedForLawyer,
@@ -168,186 +172,224 @@ export function MarginNotesColumn({
         </div>
       </div>
 
-      {/* Margin Notes List */}
+      {/* Margin Notes List — or loading / empty state */}
       <div className="flex-1 space-y-3.5 overflow-y-auto p-4">
-        {filteredClauses.map((clause) => {
-          const isSelected = selectedClause?.id === clause.id;
-          const isHighRisk = clause.riskLevel === "high-risk";
-          const isCaution = clause.riskLevel === "caution";
-          const isFlagged = flaggedForLawyer.has(clause.id);
+        {/* ── Loading state: extraction is running ── */}
+        {extractionStatus === "extracting" && (
+          <div className="flex h-full flex-col items-center justify-center gap-4 py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#B08D57]/10">
+              <RefreshCw className="h-6 w-6 animate-spin text-[#B08D57]" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-serif text-sm font-semibold text-primary">
+                AI is reading the contract…
+              </p>
+              <p className="font-mono text-xs text-muted-foreground">
+                Analysing clauses, risk levels, and rationale. This takes 10–20 s.
+              </p>
+            </div>
+          </div>
+        )}
 
-          return (
-            <div
-              key={clause.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => onSelectClause(clause)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onSelectClause(clause);
-                }
-              }}
-              aria-label={`Inspect clause ${clause.type} on page ${clause.page}`}
-              className={`cursor-pointer rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D57] ${
-                isSelected ? "scale-[1.01]" : ""
-              }`}
-            >
-              <Card
-                riskLevel={clause.riskLevel}
-                className={`transition-all ${
-                  isSelected
-                    ? "bg-[#FAF7F0] shadow-md ring-2 ring-[#B08D57]"
-                    : "hover:border-[#B08D57]/60"
+        {/* ── Empty state: no clauses yet and not currently extracting ── */}
+        {extractionStatus !== "extracting" && clauses.length === 0 && (
+          <div className="flex h-full flex-col items-center justify-center gap-4 py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
+              <FileSearch className="h-6 w-6 text-[#B08D57]" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-serif text-sm font-semibold text-primary">No margin notes yet</p>
+              <p className="max-w-xs font-mono text-xs text-muted-foreground">
+                {extractionStatus === "error"
+                  ? "Extraction failed. Go back to the Intake Desk and retry."
+                  : 'Return to the Intake Desk and click "Extract Clauses & Assess Risks" to generate AI annotations.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Clause notes list: only when extraction succeeded ── */}
+        {clauses.length > 0 &&
+          filteredClauses.map((clause) => {
+            const isSelected = selectedClause?.id === clause.id;
+            const isHighRisk = clause.riskLevel === "high-risk";
+            const isCaution = clause.riskLevel === "caution";
+            const isFlagged = flaggedForLawyer.has(clause.id);
+
+            return (
+              <div
+                key={clause.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelectClause(clause)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelectClause(clause);
+                  }
+                }}
+                aria-label={`Inspect clause ${clause.type} on page ${clause.page}`}
+                className={`cursor-pointer rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D57] ${
+                  isSelected ? "scale-[1.01]" : ""
                 }`}
               >
-                <CardHeader className="p-3.5 pb-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[11px] uppercase text-muted-foreground">
-                      § PAGE {clause.page} • {clause.type.replace(/_/g, " ")}
-                    </span>
+                <Card
+                  riskLevel={clause.riskLevel}
+                  className={`transition-all ${
+                    isSelected
+                      ? "bg-[#FAF7F0] shadow-md ring-2 ring-[#B08D57]"
+                      : "hover:border-[#B08D57]/60"
+                  }`}
+                >
+                  <CardHeader className="p-3.5 pb-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[11px] uppercase text-muted-foreground">
+                        § PAGE {clause.page} • {clause.type.replace(/_/g, " ")}
+                      </span>
 
-                    {/* Non-color signal (icon + text badge) for WCAG AA compliance */}
-                    {isHighRisk ? (
-                      <Badge variant="high-risk">
-                        <ShieldAlert className="mr-1 h-3 w-3" />
-                        Legal Risk
-                      </Badge>
-                    ) : isCaution ? (
-                      <Badge variant="caution">
-                        <AlertTriangle className="mr-1 h-3 w-3" />
-                        Caution
-                      </Badge>
-                    ) : (
-                      <Badge variant="info">
-                        <CheckCircle2 className="mr-1 h-3 w-3" />
-                        Standard
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Dynamic Content based on ReadingLevel (F3) */}
-                  {readingLevel === "plain" ? (
-                    <div className="mt-1.5 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#684B1E]">
-                          Plain Meaning:
-                        </span>
-                        {isTtsSupported && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleSpeak(clause);
-                            }}
-                            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-[#684B1E] transition-colors hover:bg-[#684B1E]/10 focus:outline-none focus:ring-1 focus:ring-[#684B1E]"
-                            aria-label={
-                              speakingClauseId === clause.id
-                                ? `Stop reading plain summary of clause ${clause.type}`
-                                : `Read plain summary of clause ${clause.type} aloud`
-                            }
-                            title={
-                              speakingClauseId === clause.id
-                                ? "Stop voice playback"
-                                : "Read aloud with voice synthesis"
-                            }
-                          >
-                            {speakingClauseId === clause.id ? (
-                              <>
-                                <VolumeX className="h-3 w-3 animate-pulse text-[#8C2F39]" />
-                                <span className="font-mono text-[10px] text-[#8C2F39]">Stop</span>
-                              </>
-                            ) : (
-                              <>
-                                <Volume2 className="h-3 w-3 text-[#684B1E]" />
-                                <span className="font-mono text-[10px] text-[#684B1E]">Read</span>
-                              </>
-                            )}
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-sm font-medium leading-snug text-foreground">
-                        {clause.plainSummary}
-                      </p>
+                      {/* Non-color signal (icon + text badge) for WCAG AA compliance */}
+                      {isHighRisk ? (
+                        <Badge variant="high-risk">
+                          <ShieldAlert className="mr-1 h-3 w-3" />
+                          Legal Risk
+                        </Badge>
+                      ) : isCaution ? (
+                        <Badge variant="caution">
+                          <AlertTriangle className="mr-1 h-3 w-3" />
+                          Caution
+                        </Badge>
+                      ) : (
+                        <Badge variant="info">
+                          <CheckCircle2 className="mr-1 h-3 w-3" />
+                          Standard
+                        </Badge>
+                      )}
                     </div>
-                  ) : (
-                    <div className="mt-1.5 space-y-1.5">
-                      <CardTitle className="text-sm font-semibold text-primary">
-                        {clause.plainSummary}
-                      </CardTitle>
-                      <div className="rounded border border-border/70 bg-secondary/40 p-2 font-mono text-[11px] text-muted-foreground">
-                        <p className="line-clamp-3 italic">&ldquo;{clause.sourceText}&rdquo;</p>
+
+                    {/* Dynamic Content based on ReadingLevel (F3) */}
+                    {readingLevel === "plain" ? (
+                      <div className="mt-1.5 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-[#684B1E]">
+                            Plain Meaning:
+                          </span>
+                          {isTtsSupported && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleSpeak(clause);
+                              }}
+                              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-[#684B1E] transition-colors hover:bg-[#684B1E]/10 focus:outline-none focus:ring-1 focus:ring-[#684B1E]"
+                              aria-label={
+                                speakingClauseId === clause.id
+                                  ? `Stop reading plain summary of clause ${clause.type}`
+                                  : `Read plain summary of clause ${clause.type} aloud`
+                              }
+                              title={
+                                speakingClauseId === clause.id
+                                  ? "Stop voice playback"
+                                  : "Read aloud with voice synthesis"
+                              }
+                            >
+                              {speakingClauseId === clause.id ? (
+                                <>
+                                  <VolumeX className="h-3 w-3 animate-pulse text-[#8C2F39]" />
+                                  <span className="font-mono text-[10px] text-[#8C2F39]">Stop</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Volume2 className="h-3 w-3 text-[#684B1E]" />
+                                  <span className="font-mono text-[10px] text-[#684B1E]">Read</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-sm font-medium leading-snug text-foreground">
+                          {clause.plainSummary}
+                        </p>
                       </div>
-                      <div className="text-[11px] text-muted-foreground">
-                        <span className="mr-1 font-mono uppercase text-[#684B1E]">Rationale:</span>
+                    ) : (
+                      <div className="mt-1.5 space-y-1.5">
+                        <CardTitle className="text-sm font-semibold text-primary">
+                          {clause.plainSummary}
+                        </CardTitle>
+                        <div className="rounded border border-border/70 bg-secondary/40 p-2 font-mono text-[11px] text-muted-foreground">
+                          <p className="line-clamp-3 italic">&ldquo;{clause.sourceText}&rdquo;</p>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          <span className="mr-1 font-mono uppercase text-[#684B1E]">
+                            Rationale:
+                          </span>
+                          {clause.rationale}
+                        </div>
+                      </div>
+                    )}
+                  </CardHeader>
+
+                  <CardContent className="p-3.5 pt-0">
+                    {readingLevel === "plain" && (
+                      <div className="rounded bg-secondary/30 p-2 text-[11px] text-muted-foreground">
+                        <span className="font-semibold text-foreground">Why it matters: </span>
                         {clause.rationale}
                       </div>
-                    </div>
-                  )}
-                </CardHeader>
+                    )}
+                  </CardContent>
 
-                <CardContent className="p-3.5 pt-0">
-                  {readingLevel === "plain" && (
-                    <div className="rounded bg-secondary/30 p-2 text-[11px] text-muted-foreground">
-                      <span className="font-semibold text-foreground">Why it matters: </span>
-                      {clause.rationale}
-                    </div>
-                  )}
-                </CardContent>
+                  <CardFooter className="flex items-center justify-between border-t border-border/50 p-2.5 px-3.5">
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      Click to inspect page
+                    </span>
 
-                <CardFooter className="flex items-center justify-between border-t border-border/50 p-2.5 px-3.5">
-                  <span className="font-mono text-[10px] text-muted-foreground">
-                    Click to inspect page
-                  </span>
-
-                  {/* F2 Acceptance Requirement: Every high-risk clause surfaces lawyer escalation */}
-                  {isHighRisk ? (
-                    <Button
-                      variant={isFlagged ? "default" : "destructive"}
-                      size="sm"
-                      className="h-7 px-2.5 text-xs"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleFlag(clause.id);
-                      }}
-                    >
-                      {isFlagged ? (
-                        <>
-                          <BookmarkCheck className="mr-1 h-3 w-3" />
-                          Flagged
-                        </>
-                      ) : (
-                        <>
-                          <Scale className="mr-1 h-3 w-3" />
-                          Flag for Lawyer
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleFlag(clause.id);
-                      }}
-                    >
-                      {isFlagged ? (
-                        <>
-                          <BookmarkCheck className="mr-1 h-3 w-3 text-[#684B1E]" />
-                          In Memo
-                        </>
-                      ) : (
-                        <>+ Flag</>
-                      )}
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            </div>
-          );
-        })}
+                    {/* F2 Acceptance Requirement: Every high-risk clause surfaces lawyer escalation */}
+                    {isHighRisk ? (
+                      <Button
+                        variant={isFlagged ? "default" : "destructive"}
+                        size="sm"
+                        className="h-7 px-2.5 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleFlag(clause.id);
+                        }}
+                      >
+                        {isFlagged ? (
+                          <>
+                            <BookmarkCheck className="mr-1 h-3 w-3" />
+                            Flagged
+                          </>
+                        ) : (
+                          <>
+                            <Scale className="mr-1 h-3 w-3" />
+                            Flag for Lawyer
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleFlag(clause.id);
+                        }}
+                      >
+                        {isFlagged ? (
+                          <>
+                            <BookmarkCheck className="mr-1 h-3 w-3 text-[#684B1E]" />
+                            In Memo
+                          </>
+                        ) : (
+                          <>+ Flag</>
+                        )}
+                      </Button>
+                    )}
+                  </CardFooter>
+                </Card>
+              </div>
+            );
+          })}
       </div>
 
       {/* Footer Navigation */}

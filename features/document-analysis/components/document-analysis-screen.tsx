@@ -9,6 +9,7 @@ import { MarginNotesColumn } from "./margin-notes-column";
 export function DocumentAnalysisScreen({
   document,
   clauses,
+  extractionStatus,
   flaggedForLawyer,
   onToggleFlag,
   onProceedToCompare,
@@ -46,6 +47,7 @@ export function DocumentAnalysisScreen({
         <div className="h-[680px] lg:col-span-6">
           <MarginNotesColumn
             clauses={clauses}
+            extractionStatus={extractionStatus}
             selectedClause={selectedClause}
             onSelectClause={setSelectedClause}
             flaggedForLawyer={flaggedForLawyer}
