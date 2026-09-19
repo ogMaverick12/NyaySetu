@@ -13,7 +13,7 @@ import { ClausePanel, useClauseExtraction } from "@/features/extraction";
 import { DocumentAnalysisScreen } from "@/features/document-analysis";
 import { CompareScreen } from "@/features/compare";
 import { ConsultationTranscriptPanel } from "@/features/qa-chat";
-import { ChecklistMemoScreen } from "@/features/checklist-export";
+import { ChecklistMemoScreen, lawyerChecklistStore } from "@/features/checklist-export";
 import {
   AccessibilityProvider,
   AccessibilityBar,
@@ -81,10 +81,16 @@ function NyaySetuApp(): JSX.Element {
   };
 
   // Stores the actual question text (not an ID) into the lawyer-prep list
-  const handleFlagQAForLawyer = (questionText: string) => {
+  const handleFlagQAForLawyer = (questionText: string, isFlagged?: boolean) => {
     const clean = questionText.replace(/^Question:\s*/i, "").trim();
-    if (clean && !flaggedQAQuestions.includes(clean)) {
-      setFlaggedQAQuestions((prev) => [...prev, clean]);
+    if (!clean) return;
+
+    if (isFlagged === false) {
+      setFlaggedQAQuestions((prev) => prev.filter((q) => q !== clean));
+      lawyerChecklistStore.removeQuestion(clean);
+    } else {
+      setFlaggedQAQuestions((prev) => (prev.includes(clean) ? prev : [...prev, clean]));
+      lawyerChecklistStore.addQuestion(clean);
     }
   };
 
@@ -93,6 +99,7 @@ function NyaySetuApp(): JSX.Element {
     resetClauses();
     setActiveView("intake");
     setFlaggedQAQuestions([]);
+    lawyerChecklistStore.clear();
     // Force IntakeDesk remount to clear its internal document/status state
     setIntakeDeskKey((k) => k + 1);
   };
@@ -493,8 +500,8 @@ function NyaySetuApp(): JSX.Element {
                   clauses={clauses}
                   extractionStatus={extractionState.status}
                   onRunExtraction={handleTriggerExtraction}
-                  onFlagForLawyer={(questionText, _rationale) => {
-                    handleFlagQAForLawyer(questionText);
+                  onFlagForLawyer={(questionText, _rationale, isFlagged) => {
+                    handleFlagQAForLawyer(questionText, isFlagged);
                   }}
                 />
               ) : (

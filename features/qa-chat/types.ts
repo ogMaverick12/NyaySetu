@@ -9,6 +9,7 @@ export const CitationSchema = z.object({
 });
 
 export type Citation = z.infer<typeof CitationSchema>;
+export type QACitation = Citation;
 
 export const QAResponseSchema = z.object({
   answer: z.string().min(1),
@@ -34,6 +35,19 @@ export interface QAMessage {
   lawyerPrepSuggestion?: string;
   provider?: string;
   isFlaggedForLawyer?: boolean;
+}
+
+export interface QATranscriptItem {
+  id: string;
+  itemNumber: number;
+  timestamp: string;
+  question: string;
+  answer: string;
+  isCovered: boolean;
+  citations: Citation[];
+  lawyerPrepSuggestion?: string;
+  provider?: string;
+  isFlaggedForLawyer: boolean;
 }
 
 export interface DocumentContextChunk {

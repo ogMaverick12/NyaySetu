@@ -135,7 +135,7 @@ describe("Contract Compare Mode & Sourced Baseline Templates (F4)", () => {
           sourceText: "Either party may conclude the agreement with thirty days writing.",
           type: "notice_period",
           plainSummary: "Reciprocal 30 days termination notice.",
-          riskLevel: "fair" as const,
+          riskLevel: "info" as const,
           rationale: "Equal reciprocal notice.",
         },
       ];

@@ -8,16 +8,26 @@ import { slideUp } from "@/motion-variants";
 
 interface TranscriptEntryProps {
   item: QATranscriptItem;
-  onToggleFlagLawyer: (itemId: string) => void;
+  onToggleFlagLawyer?: (itemId: string) => void;
+  onToggleFlag?: (itemId: string) => void;
   onJumpToPage?: (page: number) => void;
 }
 
 export function TranscriptEntry({
   item,
   onToggleFlagLawyer,
+  onToggleFlag,
   onJumpToPage,
 }: TranscriptEntryProps): JSX.Element {
   const formattedNumber = String(item.itemNumber).padStart(2, "0");
+
+  const handleToggle = () => {
+    if (onToggleFlagLawyer) {
+      onToggleFlagLawyer(item.id);
+    } else if (onToggleFlag) {
+      onToggleFlag(item.id);
+    }
+  };
 
   return (
     <motion.article
@@ -100,7 +110,7 @@ export function TranscriptEntry({
               <div className="pt-1">
                 <button
                   type="button"
-                  onClick={() => onToggleFlagLawyer(item.id)}
+                  onClick={handleToggle}
                   className={`inline-flex items-center gap-1.5 rounded border px-3 py-1.5 text-xs font-medium transition-colors ${
                     item.isFlaggedForLawyer
                       ? "border-[#3F6C51] bg-[#3F6C51] text-white"

@@ -3,35 +3,31 @@
 import { useState, useCallback } from "react";
 import { type ParsedDocument } from "@/features/ingestion/types";
 import { type Clause } from "@/features/extraction/types";
-import { type Citation, type QAResponse } from "../types";
+import { type QACitation, type QAResponse, type QATranscriptItem } from "../types";
+import { lawyerChecklistStore } from "@/features/checklist-export";
 
-export interface QATranscriptItem {
-  id: string;
-  itemNumber: number;
-  timestamp: string;
-  question: string;
-  answer: string;
-  isCovered: boolean;
-  citations: Citation[];
-  lawyerPrepSuggestion?: string;
-  provider?: string;
-  isFlaggedForLawyer: boolean;
-}
+export type { QATranscriptItem };
+
+export type OnFlagForLawyerCallback = (
+  questionText: string,
+  rationale?: string,
+  isFlagged?: boolean
+) => void;
 
 export function useQAConsultation(
-  activeDoc: ParsedDocument | null,
+  activeDoc: ParsedDocument,
   clauses?: Clause[],
-  onFlagForLawyer?: (questionText: string, rationale?: string) => void
+  onFlagForLawyer?: OnFlagForLawyerCallback
 ) {
   const [transcript, setTranscript] = useState<QATranscriptItem[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeCitation, setActiveCitation] = useState<Citation | null>(null);
+  const [activeCitation, setActiveCitation] = useState<QACitation | null>(null);
 
   const askQuestion = useCallback(
     async (queryText: string) => {
       const trimmed = queryText.trim();
-      if (!trimmed || !activeDoc) return;
+      if (!trimmed) return;
 
       setIsSubmitting(true);
       setError(null);
@@ -43,13 +39,13 @@ export function useQAConsultation(
           body: JSON.stringify({
             doc: activeDoc,
             question: trimmed,
-            clauses: clauses || [],
+            clauses,
           }),
         });
 
         if (!res.ok) {
-          const errData = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(errData.error || `Consultation request failed with HTTP ${res.status}`);
+          const errData = (await res.json()) as { error?: string };
+          throw new Error(errData.error || `Request failed with status ${res.status}`);
         }
 
         const data = (await res.json()) as { success: boolean; result: QAResponse };
@@ -65,7 +61,7 @@ export function useQAConsultation(
           citations: result.citations || [],
           lawyerPrepSuggestion: result.lawyerPrepSuggestion,
           provider: result.metadata?.provider,
-          isFlaggedForLawyer: false,
+          isFlaggedForLawyer: lawyerChecklistStore.hasQuestion(trimmed),
         };
 
         setTranscript((prev) => [...prev, newItem]);
@@ -85,11 +81,11 @@ export function useQAConsultation(
         prev.map((item) => {
           if (item.id === itemId) {
             const nextState = !item.isFlaggedForLawyer;
-            if (nextState && onFlagForLawyer) {
-              onFlagForLawyer(
-                `Question: ${item.question}`,
-                item.lawyerPrepSuggestion || item.answer
-              );
+            // Persist to the shared lawyerChecklistStore
+            lawyerChecklistStore.toggleQuestion(item.question, nextState);
+
+            if (onFlagForLawyer) {
+              onFlagForLawyer(item.question, item.lawyerPrepSuggestion || item.answer);
             }
             return { ...item, isFlaggedForLawyer: nextState };
           }

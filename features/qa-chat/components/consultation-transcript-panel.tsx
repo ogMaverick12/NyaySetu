@@ -24,7 +24,7 @@ interface ConsultationTranscriptPanelProps {
   clauses?: Clause[];
   extractionStatus?: "idle" | "extracting" | "success" | "error";
   onRunExtraction?: () => void;
-  onFlagForLawyer?: (questionText: string, rationale?: string) => void;
+  onFlagForLawyer?: (questionText: string, rationale?: string, isFlagged?: boolean) => void;
   onJumpToPage?: (page: number) => void;
 }
 
@@ -223,6 +223,7 @@ export function ConsultationTranscriptPanel({
               key={item.id}
               item={item}
               onToggleFlag={toggleFlagForLawyer}
+              onToggleFlagLawyer={toggleFlagForLawyer}
               onJumpToPage={onJumpToPage}
             />
           ))

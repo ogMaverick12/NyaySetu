@@ -5,3 +5,4 @@ export * from "./services/checklist-generator";
 export * from "./services/pdf-exporter";
 export * from "./components/lawyer-questions-card";
 export * from "./components/checklist-memo-screen";
+export * from "./store/lawyer-checklist-store";

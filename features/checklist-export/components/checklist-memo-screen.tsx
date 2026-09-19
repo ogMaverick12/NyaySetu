@@ -6,6 +6,7 @@ import { type Clause } from "@/features/extraction/types";
 import { generateLegalMemo } from "../services/checklist-generator";
 import { exportLegalMemoToPdf } from "../services/pdf-exporter";
 import { LawyerQuestionsCard } from "./lawyer-questions-card";
+import { useLawyerChecklist } from "../store/lawyer-checklist-store";
 import { Button } from "@/ui/button";
 import { Download, Printer, Copy, Check, CheckCircle2, RefreshCw, Scale } from "lucide-react";
 
@@ -24,12 +25,19 @@ export function ChecklistMemoScreen({
   onRunExtraction,
   bookmarkedQuestions = [],
 }: ChecklistMemoScreenProps): JSX.Element {
+  const { questions: storeQuestions } = useLawyerChecklist();
+
   const isExtractionComplete =
     (extractionStatus === "success" || clauses.length > 0) && extractionStatus !== "extracting";
 
+  const allBookmarkedQuestions = useMemo(() => {
+    const combined = new Set([...bookmarkedQuestions, ...storeQuestions]);
+    return Array.from(combined);
+  }, [bookmarkedQuestions, storeQuestions]);
+
   const memo = useMemo(
-    () => (isExtractionComplete ? generateLegalMemo(doc, clauses, bookmarkedQuestions) : null),
-    [doc, clauses, bookmarkedQuestions, isExtractionComplete]
+    () => (isExtractionComplete ? generateLegalMemo(doc, clauses, allBookmarkedQuestions) : null),
+    [doc, clauses, allBookmarkedQuestions, isExtractionComplete]
   );
 
   const [checkedActions, setCheckedActions] = useState<Record<string, boolean>>({});

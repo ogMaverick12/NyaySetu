@@ -1,4 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import React from "react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { type ParsedDocument } from "@/features/ingestion/types";
 import { type Clause } from "@/features/extraction/types";
 import { ChecklistItemSchema } from "@/features/checklist-export/types";
@@ -10,6 +12,10 @@ import {
   generateQuestionWithRetry,
 } from "@/features/checklist-export/services/checklist-generator";
 import { buildLegalMemoPdf } from "@/features/checklist-export/services/pdf-exporter";
+import { lawyerChecklistStore } from "@/features/checklist-export";
+import { ChecklistMemoScreen } from "@/features/checklist-export/components/checklist-memo-screen";
+import { TranscriptEntry } from "@/features/qa-chat/components/transcript-entry";
+import { type QATranscriptItem } from "@/features/qa-chat/types";
 
 const sampleDoc: ParsedDocument = {
   id: "doc_lease_101",
@@ -373,6 +379,134 @@ describe("Action Checklist & Legal Memo Export (PRD F6)", () => {
       const doc = buildLegalMemoPdf(memo);
       expect(doc).toBeDefined();
       expect(doc.internal.pages.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe("Shared Lawyer Checklist Store & Consultation Q&A Integration", () => {
+    it("should manage questions in lawyerChecklistStore (add, remove, toggle, deduplicate, clear)", () => {
+      lawyerChecklistStore.clear();
+      expect(lawyerChecklistStore.getSnapshot()).toEqual([]);
+
+      lawyerChecklistStore.addQuestion("Can the landlord lock me out without court order?");
+      expect(
+        lawyerChecklistStore.hasQuestion("Can the landlord lock me out without court order?")
+      ).toBe(true);
+      expect(lawyerChecklistStore.getSnapshot()).toHaveLength(1);
+
+      // Deduplication check
+      lawyerChecklistStore.addQuestion("Can the landlord lock me out without court order?");
+      expect(lawyerChecklistStore.getSnapshot()).toHaveLength(1);
+
+      // Toggle off
+      lawyerChecklistStore.toggleQuestion(
+        "Can the landlord lock me out without court order?",
+        false
+      );
+      expect(
+        lawyerChecklistStore.hasQuestion("Can the landlord lock me out without court order?")
+      ).toBe(false);
+
+      // Toggle on
+      lawyerChecklistStore.toggleQuestion(
+        "Can the landlord lock me out without court order?",
+        true
+      );
+      expect(
+        lawyerChecklistStore.hasQuestion("Can the landlord lock me out without court order?")
+      ).toBe(true);
+
+      lawyerChecklistStore.clear();
+      expect(lawyerChecklistStore.getSnapshot()).toEqual([]);
+    });
+
+    it("should include questions added via lawyerChecklistStore in the generated memo", () => {
+      lawyerChecklistStore.clear();
+      const customQ = "Can the landlord seize my vehicle for unpaid rent?";
+      lawyerChecklistStore.addQuestion(customQ);
+
+      const memo = generateLegalMemo(sampleDoc, sampleClauses, lawyerChecklistStore.getSnapshot());
+      const found = memo.lawyerQuestions.find((q) => q.text.includes("seize my vehicle"));
+      expect(found).toBeDefined();
+      expect(found?.kind).toBe("lawyer_question");
+      expect(found?.text).toBe(customQ);
+
+      // Check PDF generation with this memo
+      const pdf = buildLegalMemoPdf(memo);
+      expect(pdf).toBeDefined();
+      expect(pdf.internal.pages.length).toBeGreaterThanOrEqual(1);
+
+      lawyerChecklistStore.clear();
+    });
+
+    it("clicking 'Add to Lawyer-Prep Checklist' button in Consultation Q&A adds question to store and exported memo", () => {
+      lawyerChecklistStore.clear();
+      const questionText = "Are digital signatures on tenancy agreements valid in Karnataka?";
+
+      const item: QATranscriptItem = {
+        id: "qa_item_digital_sig",
+        itemNumber: 1,
+        question: questionText,
+        answer: "The document does not address electronic execution or IT Act applicability.",
+        timestamp: "11:00 AM",
+        isCovered: false,
+        lawyerPrepSuggestion:
+          "Verify compliance under Section 10A of the Information Technology Act, 2000.",
+        citations: [],
+        isFlaggedForLawyer: false,
+      };
+
+      // Mock the toggle callback which useQAConsultation executes
+      const handleToggle = vi.fn((_id: string) => {
+        lawyerChecklistStore.toggleQuestion(item.question, true);
+      });
+
+      // Render TranscriptEntry
+      const { unmount: unmountEntry } = render(
+        React.createElement(TranscriptEntry, {
+          item,
+          onToggleFlagLawyer: handleToggle,
+        })
+      );
+
+      const addButton = screen.getByRole("button", {
+        name: /Add question to lawyer prep checklist/i,
+      });
+      expect(addButton).toBeDefined();
+      expect(addButton.textContent).toContain("Add to Lawyer-Prep Checklist");
+
+      // Click "Add to Lawyer-Prep Checklist" wrapped in act
+      act(() => {
+        fireEvent.click(addButton);
+      });
+      expect(handleToggle).toHaveBeenCalledWith("qa_item_digital_sig");
+      expect(lawyerChecklistStore.hasQuestion(questionText)).toBe(true);
+
+      unmountEntry();
+
+      // Now verify ChecklistMemoScreen consumes this question via the shared store
+      const renderedMemo = render(
+        React.createElement(ChecklistMemoScreen, {
+          doc: sampleDoc,
+          clauses: sampleClauses,
+          extractionStatus: "success",
+        })
+      );
+
+      // The question added via the button must appear in the rendered UI
+      expect(renderedMemo.container.textContent).toContain(questionText);
+
+      // Generate the memo and verify it contains the question
+      const memo = generateLegalMemo(sampleDoc, sampleClauses, lawyerChecklistStore.getSnapshot());
+      const matched = memo.lawyerQuestions.find((q) => q.text === questionText);
+      expect(matched).toBeDefined();
+
+      // Verify the exported PDF includes this question
+      const pdf = buildLegalMemoPdf(memo);
+      expect(pdf).toBeDefined();
+      expect(pdf.internal.pages.length).toBeGreaterThanOrEqual(1);
+
+      renderedMemo.unmount();
+      lawyerChecklistStore.clear();
     });
   });
 });
