@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { type ParsedDocument } from "@/features/ingestion/types";
+import { type Clause } from "@/features/extraction/types";
 import { type ComparisonResult, type CompareFilter } from "../types";
 import { BASELINE_TEMPLATES } from "../data/baseline-templates";
 import { RedlineCard } from "./redline-card";
@@ -22,11 +23,17 @@ import {
 
 interface CompareScreenProps {
   primaryDocument: ParsedDocument;
+  clauses?: Clause[];
+  extractionStatus?: "idle" | "extracting" | "success" | "error";
+  onRunExtraction?: () => void;
   onBackToAnalysis?: () => void;
 }
 
 export function CompareScreen({
   primaryDocument,
+  clauses = [],
+  extractionStatus = "idle",
+  onRunExtraction,
   onBackToAnalysis,
 }: CompareScreenProps): JSX.Element {
   const [compareMode, setCompareMode] = useState<"doc_vs_baseline" | "doc_vs_doc">(
@@ -37,7 +44,12 @@ export function CompareScreen({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [filter, setFilter] = useState<CompareFilter>("all");
 
+  const isExtractionComplete =
+    (extractionStatus === "success" || clauses.length > 0) && extractionStatus !== "extracting";
+
   const runComparison = useCallback(async () => {
+    if (!isExtractionComplete) return;
+
     setIsLoading(true);
     try {
       const res = await fetch("/api/compare", {
@@ -47,6 +59,7 @@ export function CompareScreen({
           mode: compareMode,
           targetDoc: primaryDocument,
           baselineKey: selectedBaselineKey,
+          clauses,
         }),
       });
 
@@ -64,11 +77,15 @@ export function CompareScreen({
     } finally {
       setIsLoading(false);
     }
-  }, [compareMode, selectedBaselineKey, primaryDocument]);
+  }, [compareMode, selectedBaselineKey, primaryDocument, clauses, isExtractionComplete]);
 
   useEffect(() => {
-    void runComparison();
-  }, [runComparison]);
+    if (isExtractionComplete) {
+      void runComparison();
+    } else {
+      setComparisonResult(null);
+    }
+  }, [isExtractionComplete, runComparison]);
 
   const activeBaseline =
     BASELINE_TEMPLATES[selectedBaselineKey] || BASELINE_TEMPLATES.residential_tenancy;
@@ -116,22 +133,28 @@ export function CompareScreen({
           <div className="flex items-center gap-2">
             <button
               type="button"
+              disabled={!isExtractionComplete}
               onClick={() => setCompareMode("doc_vs_baseline")}
               className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                compareMode === "doc_vs_baseline"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-muted-foreground hover:text-foreground"
+                !isExtractionComplete
+                  ? "cursor-not-allowed bg-secondary text-muted-foreground opacity-50"
+                  : compareMode === "doc_vs_baseline"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:text-foreground"
               }`}
             >
               Doc vs Sourced Baseline
             </button>
             <button
               type="button"
+              disabled={!isExtractionComplete}
               onClick={() => setCompareMode("doc_vs_doc")}
               className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                compareMode === "doc_vs_doc"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-muted-foreground hover:text-foreground"
+                !isExtractionComplete
+                  ? "cursor-not-allowed bg-secondary text-muted-foreground opacity-50"
+                  : compareMode === "doc_vs_doc"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:text-foreground"
               }`}
             >
               Doc vs Second Document
@@ -144,11 +167,14 @@ export function CompareScreen({
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <button
               type="button"
+              disabled={!isExtractionComplete}
               onClick={() => setSelectedBaselineKey("residential_tenancy")}
               className={`flex flex-col rounded border p-3 text-left transition-all ${
-                selectedBaselineKey === "residential_tenancy"
-                  ? "shadow-xs border-[#B08D57] bg-[#FAF4E8]"
-                  : "border-border bg-card hover:bg-secondary/40"
+                !isExtractionComplete
+                  ? "cursor-not-allowed border-border bg-card opacity-60"
+                  : selectedBaselineKey === "residential_tenancy"
+                    ? "shadow-xs border-[#B08D57] bg-[#FAF4E8]"
+                    : "border-border bg-card hover:bg-secondary/40"
               }`}
             >
               <div className="mb-1 flex items-center justify-between">
@@ -167,11 +193,14 @@ export function CompareScreen({
 
             <button
               type="button"
+              disabled={!isExtractionComplete}
               onClick={() => setSelectedBaselineKey("gig_worker_agreement")}
               className={`flex flex-col rounded border p-3 text-left transition-all ${
-                selectedBaselineKey === "gig_worker_agreement"
-                  ? "shadow-xs border-[#B08D57] bg-[#FAF4E8]"
-                  : "border-border bg-card hover:bg-secondary/40"
+                !isExtractionComplete
+                  ? "cursor-not-allowed border-border bg-card opacity-60"
+                  : selectedBaselineKey === "gig_worker_agreement"
+                    ? "shadow-xs border-[#B08D57] bg-[#FAF4E8]"
+                    : "border-border bg-card hover:bg-secondary/40"
               }`}
             >
               <div className="mb-1 flex items-center justify-between">
@@ -190,11 +219,14 @@ export function CompareScreen({
 
             <button
               type="button"
+              disabled={!isExtractionComplete}
               onClick={() => setSelectedBaselineKey("employment_offer")}
               className={`flex flex-col rounded border p-3 text-left transition-all ${
-                selectedBaselineKey === "employment_offer"
-                  ? "shadow-xs border-[#B08D57] bg-[#FAF4E8]"
-                  : "border-border bg-card hover:bg-secondary/40"
+                !isExtractionComplete
+                  ? "cursor-not-allowed border-border bg-card opacity-60"
+                  : selectedBaselineKey === "employment_offer"
+                    ? "shadow-xs border-[#B08D57] bg-[#FAF4E8]"
+                    : "border-border bg-card hover:bg-secondary/40"
               }`}
             >
               <div className="mb-1 flex items-center justify-between">
@@ -228,12 +260,50 @@ export function CompareScreen({
         </div>
       </div>
 
-      {/* Comparison Results & Redline Overview */}
-      {isLoading ? (
+      {/* Gating: If extraction has not finished, display clear inline prompt instead of negative result */}
+      {!isExtractionComplete ? (
+        extractionStatus === "extracting" ? (
+          <div className="shadow-xs space-y-3 rounded-lg border border-[#B08D57]/40 bg-[#FBF9F4] p-10 text-center">
+            <RefreshCw className="mx-auto h-8 w-8 animate-spin text-[#B08D57]" />
+            <h3 className="font-serif text-base font-semibold text-[#1B2430]">
+              Extracting Operative Clauses...
+            </h3>
+            <p className="mx-auto max-w-md text-xs leading-relaxed text-[#525D6B]">
+              NyaySetu is actively analyzing clauses from{" "}
+              <span className="font-semibold text-primary">{primaryDocument.filename}</span>.
+              Contract Compare and redline tracked changes will activate automatically once
+              extraction completes to prevent false negative evaluations.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4 rounded-lg border-2 border-[#B08D57]/40 bg-[#FBF9F4] p-8 text-center shadow-sm">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#B08D57]/10 text-[#8C6D3B]">
+              <Scale className="h-6 w-6" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="font-serif text-base font-semibold text-[#1B2430]">
+                Clause Extraction Required Before Comparison
+              </h3>
+              <p className="mx-auto max-w-lg text-xs leading-relaxed text-[#525D6B]">
+                Contract Compare evaluates your agreement against statutory fair-practice baselines
+                (Model Tenancy, Fairwork, Contract Act). To prevent false negatives (such as
+                claiming a clause is &ldquo;not explicitly stated&rdquo; when it simply has not been
+                extracted yet), please extract and assess clauses first.
+              </p>
+            </div>
+            {onRunExtraction && (
+              <Button variant="brass" onClick={onRunExtraction}>
+                <Scale className="mr-2 h-4 w-4" />
+                Extract Clauses &amp; Assess Risks
+              </Button>
+            )}
+          </div>
+        )
+      ) : isLoading ? (
         <div className="space-y-3 rounded border border-border bg-card p-12 text-center">
           <RefreshCw className="mx-auto h-6 w-6 animate-spin text-[#B08D57]" />
           <p className="font-serif text-sm font-medium text-primary">
-            Generating tracked-changes redline comparison...
+            Generating tracked-changes redline comparison against {activeBaseline.title}...
           </p>
           <p className="font-mono text-xs text-muted-foreground">
             Evaluating favorability against fair practice standards

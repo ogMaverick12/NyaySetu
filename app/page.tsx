@@ -460,6 +460,9 @@ function NyaySetuApp(): JSX.Element {
               {activeDoc ? (
                 <CompareScreen
                   primaryDocument={activeDoc}
+                  clauses={clauses}
+                  extractionStatus={extractionState.status}
+                  onRunExtraction={handleTriggerExtraction}
                   onBackToAnalysis={() => setActiveView("analysis")}
                 />
               ) : (
@@ -488,6 +491,8 @@ function NyaySetuApp(): JSX.Element {
                 <ConsultationTranscriptPanel
                   doc={activeDoc}
                   clauses={clauses}
+                  extractionStatus={extractionState.status}
+                  onRunExtraction={handleTriggerExtraction}
                   onFlagForLawyer={(questionText, _rationale) => {
                     handleFlagQAForLawyer(questionText);
                   }}
@@ -518,6 +523,8 @@ function NyaySetuApp(): JSX.Element {
                 <ChecklistMemoScreen
                   doc={activeDoc}
                   clauses={clauses}
+                  extractionStatus={extractionState.status}
+                  onRunExtraction={handleTriggerExtraction}
                   bookmarkedQuestions={[...flaggedQAQuestions, ...Array.from(flaggedForLawyer)]}
                 />
               ) : (

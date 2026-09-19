@@ -1,6 +1,7 @@
 import { type ComparisonDifference, type ComparisonResult, ComparisonResultSchema } from "../types";
 import { BASELINE_TEMPLATES } from "../data/baseline-templates";
 import { type ParsedDocument } from "@/features/ingestion/types";
+import { type Clause } from "@/features/extraction/types";
 import { cleanJsonString } from "@/features/extraction/services/clause-validator";
 
 /**
@@ -40,14 +41,53 @@ Output ONLY valid JSON.`;
 
 /**
  * Compares an uploaded document against a pre-sourced statutory baseline template.
+ * When extracted clauses are available, it matches against the indexed clauses to prevent
+ * false negatives ("Clause not explicitly stated").
  */
 export function buildDeterministicBaselineComparison(
   doc: ParsedDocument,
-  baselineKey: string
+  baselineKey: string,
+  clauses?: Clause[]
 ): ComparisonResult {
   const baseline = BASELINE_TEMPLATES[baselineKey] || BASELINE_TEMPLATES.residential_tenancy;
 
   const differences: ComparisonDifference[] = baseline.clauses.map((baseClause, idx) => {
+    // 1. Check if extracted clauses have a match for this clause type
+    const matchingExtracted = clauses?.find((c) => {
+      const cType = c.type.toLowerCase().replace(/[\s-]/g, "_");
+      const bType = baseClause.type.toLowerCase().replace(/[\s-]/g, "_");
+      if (cType === bType || cType.includes(bType) || bType.includes(cType)) return true;
+      const keywords = bType.split("_");
+      return keywords.some((kw) => kw.length > 3 && c.sourceText.toLowerCase().includes(kw));
+    });
+
+    if (matchingExtracted) {
+      const impact: "favorable" | "disadvantageous" | "neutral" =
+        matchingExtracted.riskLevel === "high-risk"
+          ? "disadvantageous"
+          : matchingExtracted.riskLevel === "caution"
+            ? "neutral"
+            : "favorable";
+
+      return {
+        id: `diff_${idx + 1}`,
+        clauseType: baseClause.type,
+        title: baseClause.title,
+        baseText: baseClause.standardText,
+        targetText: matchingExtracted.sourceText,
+        impactOnUser: impact,
+        explanation:
+          matchingExtracted.rationale ||
+          `Extracted operative provision (${matchingExtracted.plainSummary}) evaluated against ${baseline.sourcedReference}.`,
+        severity:
+          matchingExtracted.riskLevel === "high-risk"
+            ? "high"
+            : matchingExtracted.riskLevel === "caution"
+              ? "medium"
+              : "low",
+      };
+    }
+
     // Check if target document text mentions this clause type
     const typeKeyword = baseClause.type.replace(/_/g, " ");
 

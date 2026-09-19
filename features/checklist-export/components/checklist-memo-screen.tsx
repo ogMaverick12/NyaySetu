@@ -6,22 +6,30 @@ import { type Clause } from "@/features/extraction/types";
 import { generateLegalMemo } from "../services/checklist-generator";
 import { exportLegalMemoToPdf } from "../services/pdf-exporter";
 import { LawyerQuestionsCard } from "./lawyer-questions-card";
-import { Download, Printer, Copy, Check, CheckCircle2 } from "lucide-react";
+import { Button } from "@/ui/button";
+import { Download, Printer, Copy, Check, CheckCircle2, RefreshCw, Scale } from "lucide-react";
 
 interface ChecklistMemoScreenProps {
   doc: ParsedDocument;
   clauses: Clause[];
+  extractionStatus?: "idle" | "extracting" | "success" | "error";
+  onRunExtraction?: () => void;
   bookmarkedQuestions?: string[];
 }
 
 export function ChecklistMemoScreen({
   doc,
   clauses,
+  extractionStatus = "idle",
+  onRunExtraction,
   bookmarkedQuestions = [],
 }: ChecklistMemoScreenProps): JSX.Element {
+  const isExtractionComplete =
+    (extractionStatus === "success" || clauses.length > 0) && extractionStatus !== "extracting";
+
   const memo = useMemo(
-    () => generateLegalMemo(doc, clauses, bookmarkedQuestions),
-    [doc, clauses, bookmarkedQuestions]
+    () => (isExtractionComplete ? generateLegalMemo(doc, clauses, bookmarkedQuestions) : null),
+    [doc, clauses, bookmarkedQuestions, isExtractionComplete]
   );
 
   const [checkedActions, setCheckedActions] = useState<Record<string, boolean>>({});
@@ -32,14 +40,16 @@ export function ChecklistMemoScreen({
   };
 
   const handleExportPdf = () => {
-    exportLegalMemoToPdf(memo);
+    if (memo) exportLegalMemoToPdf(memo);
   };
 
   const handlePrint = () => {
-    window.print();
+    if (memo) window.print();
   };
 
   const handleCopyText = () => {
+    if (!memo) return;
+
     const textLines = [
       `NYAYSETU LEGAL PREPARATION MEMORANDUM`,
       `=====================================`,
@@ -67,7 +77,7 @@ export function ChecklistMemoScreen({
     setTimeout(() => setCopiedMemo(false), 2000);
   };
 
-  const completedCount = memo.actionItems.filter((a) => checkedActions[a.id]).length;
+  const completedCount = memo ? memo.actionItems.filter((a) => checkedActions[a.id]).length : 0;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -88,8 +98,9 @@ export function ChecklistMemoScreen({
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
+            disabled={!isExtractionComplete || !memo}
             onClick={handleExportPdf}
-            className="shadow-xs inline-flex items-center gap-1.5 rounded bg-[#1B2430] px-3.5 py-2 font-mono text-xs font-semibold text-[#F7F3EA] transition-colors hover:bg-[#111822]"
+            className="shadow-xs inline-flex items-center gap-1.5 rounded bg-[#1B2430] px-3.5 py-2 font-mono text-xs font-semibold text-[#F7F3EA] transition-colors hover:bg-[#111822] disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Export official PDF memo"
           >
             <Download className="h-3.5 w-3.5 text-[#B08D57]" />
@@ -98,8 +109,9 @@ export function ChecklistMemoScreen({
 
           <button
             type="button"
+            disabled={!isExtractionComplete || !memo}
             onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 rounded border border-[#E0D7C6] bg-[#F7F3EA] px-3 py-2 font-mono text-xs text-[#1B2430] transition-colors hover:bg-[#EFE8DC]"
+            className="inline-flex items-center gap-1.5 rounded border border-[#E0D7C6] bg-[#F7F3EA] px-3 py-2 font-mono text-xs text-[#1B2430] transition-colors hover:bg-[#EFE8DC] disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Print memorandum"
           >
             <Printer className="h-3.5 w-3.5 text-[#525D6B]" />
@@ -108,8 +120,9 @@ export function ChecklistMemoScreen({
 
           <button
             type="button"
+            disabled={!isExtractionComplete || !memo}
             onClick={handleCopyText}
-            className="inline-flex items-center gap-1.5 rounded border border-[#E0D7C6] bg-[#F7F3EA] px-3 py-2 font-mono text-xs text-[#1B2430] transition-colors hover:bg-[#EFE8DC]"
+            className="inline-flex items-center gap-1.5 rounded border border-[#E0D7C6] bg-[#F7F3EA] px-3 py-2 font-mono text-xs text-[#1B2430] transition-colors hover:bg-[#EFE8DC] disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Copy memo text"
           >
             {copiedMemo ? (
@@ -127,164 +140,167 @@ export function ChecklistMemoScreen({
         </div>
       </div>
 
-      {/* Official Letter / Memorandum Paper Sheet */}
-      <article className="space-y-8 rounded-xl border border-[#E0D7C6] bg-[#FDFBF7] p-8 shadow-md sm:p-12 print:border-none print:p-0 print:shadow-none">
-        {/* Letterhead Header */}
-        <header className="space-y-4 border-b-2 border-[#1B2430] pb-6">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-xs font-semibold uppercase tracking-widest text-[#B08D57]">
-              NYAYSETU · CLINICAL PREPARATION MEMO
-            </span>
-            <span className="font-mono text-xs text-[#525D6B]">REF: {memo.caseReference}</span>
-          </div>
-
-          <h1 className="font-serif text-3xl tracking-tight text-[#1B2430] sm:text-4xl">
-            Legal Preparation Memorandum
-          </h1>
-
-          {/* Formal Memo Routing Table */}
-          <div className="grid grid-cols-1 gap-3 border-t border-[#E0D7C6]/70 pt-3 text-xs sm:grid-cols-2">
-            <div>
-              <span className="block font-mono text-[10px] uppercase tracking-wider text-[#525D6B]">
-                To:
-              </span>
-              <span className="font-medium text-[#1B2430]">
-                Client / Free Legal-Aid Clinic Counsel
-              </span>
-            </div>
-            <div>
-              <span className="block font-mono text-[10px] uppercase tracking-wider text-[#525D6B]">
-                From:
-              </span>
-              <span className="font-medium text-[#1B2430]">NyaySetu Contract Analysis Desk</span>
-            </div>
-            <div>
-              <span className="block font-mono text-[10px] uppercase tracking-wider text-[#525D6B]">
-                Document Examined:
-              </span>
-              <span className="font-mono font-medium text-[#1B2430]">{memo.documentFilename}</span>
-            </div>
-            <div>
-              <span className="block font-mono text-[10px] uppercase tracking-wider text-[#525D6B]">
-                Date:
-              </span>
-              <span className="font-medium text-[#1B2430]">{memo.generatedDate}</span>
-            </div>
-          </div>
-        </header>
-
-        {/* Executive Summary Stats */}
-        <div className="grid grid-cols-2 gap-3 rounded-lg border border-[#E0D7C6] bg-[#F7F3EA] p-4 text-xs sm:grid-cols-4">
-          <div>
-            <span className="block text-[11px] text-[#525D6B]">Clauses Analyzed</span>
-            <span className="font-serif text-lg font-bold text-[#1B2430]">{memo.totalClauses}</span>
-          </div>
-          <div>
-            <span className="block text-[11px] font-medium text-[#8C2F39]">High-Risk Flags</span>
-            <span className="font-serif text-lg font-bold text-[#8C2F39]">
-              {memo.highRiskCount}
-            </span>
-          </div>
-          <div>
-            <span className="block text-[11px] font-medium text-[#C08A2E]">Caution Points</span>
-            <span className="font-serif text-lg font-bold text-[#C08A2E]">{memo.cautionCount}</span>
-          </div>
-          <div>
-            <span className="block text-[11px] font-medium text-[#3F6C51]">Actions Completed</span>
-            <span className="font-serif text-lg font-bold text-[#3F6C51]">
-              {completedCount} / {memo.actionItems.length}
-            </span>
-          </div>
-        </div>
-
-        {/* Section 1: Executive Action Checklist */}
-        <section aria-labelledby="action-checklist-heading" className="space-y-4">
-          <div className="flex items-center justify-between border-b border-[#E0D7C6] pb-2">
-            <h2
-              id="action-checklist-heading"
-              className="font-serif text-xl font-semibold text-[#1B2430]"
-            >
-              1. Executive Action Checklist (Before Signing)
-            </h2>
-            <span className="font-mono text-xs text-[#525D6B]">
-              {completedCount} of {memo.actionItems.length} checked
-            </span>
-          </div>
-
-          <ol className="space-y-3">
-            {memo.actionItems.map((action, idx) => {
-              const isChecked = Boolean(checkedActions[action.id]);
-              return (
-                <li key={action.id}>
-                  <button
-                    type="button"
-                    role="checkbox"
-                    aria-checked={isChecked}
-                    onClick={() => toggleAction(action.id)}
-                    className={`flex w-full cursor-pointer items-start gap-3 rounded border p-3.5 text-left transition-colors ${
-                      isChecked
-                        ? "border-[#3F6C51]/30 bg-[#3F6C51]/5 text-[#525D6B]"
-                        : "border-[#E0D7C6] bg-[#FBF9F4] text-[#1B2430] hover:border-[#B08D57]"
-                    }`}
-                  >
-                    <span className="mt-0.5 shrink-0">
-                      {isChecked ? (
-                        <CheckCircle2 className="h-4 w-4 text-[#3F6C51]" />
-                      ) : (
-                        <span className="inline-block h-4 w-4 rounded border border-[#8A94A1] bg-white" />
-                      )}
-                    </span>
-                    <div className="text-xs leading-relaxed">
-                      <span className="mr-2 font-mono font-bold text-[#8C6D3B]">{idx + 1}.</span>
-                      <span className={isChecked ? "line-through opacity-70" : ""}>
-                        {action.text}
-                      </span>
-                      {action.sourceClauseId && (
-                        <span className="ml-2 font-mono text-[10px] text-[#525D6B]">
-                          [Source: Clause {action.sourceClauseId}]
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-
-        {/* Section 2: Questions for Your Lawyer (Bordered Card) */}
-        <LawyerQuestionsCard questions={memo.lawyerQuestions} />
-
-        {/* Section 3: Statutory Benchmarks Cited */}
-        {memo.statutoryCitations.length > 0 && (
-          <section
-            aria-labelledby="statutory-citations-heading"
-            className="space-y-2 rounded-lg border border-[#E0D7C6] bg-[#F7F3EA] p-4 text-xs"
-          >
-            <h3
-              id="statutory-citations-heading"
-              className="font-serif font-semibold text-[#1B2430]"
-            >
-              Statutory Provisions &amp; Standards Referenced
+      {/* Gating: If extraction has not finished, display clear inline prompt instead of returning an empty memo */}
+      {!isExtractionComplete ? (
+        extractionStatus === "extracting" ? (
+          <div className="shadow-xs space-y-4 rounded-xl border border-[#E0D7C6] bg-[#FDFBF7] p-12 text-center">
+            <RefreshCw className="mx-auto h-8 w-8 animate-spin text-[#B08D57]" />
+            <h3 className="font-serif text-base font-semibold text-[#1B2430]">
+              Extracting Operative Clauses &amp; Assessing Risks...
             </h3>
-            <ul className="list-inside list-disc space-y-1 font-mono text-[11px] text-[#525D6B]">
-              {memo.statutoryCitations.map((citation, i) => (
-                <li key={i}>{citation}</li>
-              ))}
-            </ul>
-          </section>
-        )}
+            <p className="mx-auto max-w-md text-xs leading-relaxed text-[#525D6B]">
+              NyaySetu is actively analyzing clauses from{" "}
+              <span className="font-semibold text-primary">{doc.filename}</span>. Your executive
+              legal preparation memo and action checklist will generate automatically once
+              extraction completes.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4 rounded-xl border-2 border-[#B08D57]/40 bg-[#FDFBF7] p-10 text-center shadow-sm">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#B08D57]/10 text-[#8C6D3B]">
+              <Scale className="h-6 w-6" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="font-serif text-base font-semibold text-[#1B2430]">
+                Clause Extraction Required for Legal Preparation Memo
+              </h3>
+              <p className="mx-auto max-w-lg text-xs leading-relaxed text-[#525D6B]">
+                The legal preparation memorandum derives risk classifications, advocate consultation
+                questions, and pre-signing action items directly from extracted operative clauses.
+                Opening this view before extraction would produce a false negative memo with zero
+                detected risks. Please extract clauses first.
+              </p>
+            </div>
+            {onRunExtraction && (
+              <Button variant="brass" onClick={onRunExtraction}>
+                <Scale className="mr-2 h-4 w-4" />
+                Extract Clauses &amp; Assess Risks
+              </Button>
+            )}
+          </div>
+        )
+      ) : memo ? (
+        /* Official Letter / Memorandum Paper Sheet */
+        <article className="space-y-8 rounded-xl border border-[#E0D7C6] bg-[#FDFBF7] p-8 shadow-md sm:p-12 print:border-none print:p-0 print:shadow-none">
+          {/* Letterhead Header */}
+          <header className="space-y-4 border-b-2 border-[#1B2430] pb-6">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-xs font-semibold uppercase tracking-widest text-[#B08D57]">
+                NYAYSETU · CLINICAL PREPARATION MEMO
+              </span>
+              <span className="font-mono text-xs text-[#525D6B]">REF: {memo.caseReference}</span>
+            </div>
 
-        {/* Formal Legal Disclaimer Footer */}
-        <footer className="space-y-1 border-t border-[#E0D7C6] pt-6 text-[11px] italic leading-relaxed text-[#8A94A1]">
-          <p>
-            DISCLAIMER: This legal preparation memorandum was generated by NyaySetu based solely on
-            the four corners of <strong>{memo.documentFilename}</strong>. It is designed to assist
-            citizens and advocates at free legal-aid clinics and does not constitute formal legal
-            advice or an attorney-client relationship.
-          </p>
-        </footer>
-      </article>
+            <div>
+              <h1 className="font-serif text-2xl font-bold tracking-tight text-[#1B2430] sm:text-3xl">
+                Legal Preparation Memorandum
+              </h1>
+              <p className="mt-1 font-sans text-xs text-[#525D6B]">
+                Prepared for citizen advocacy, legal clinic intake, and formal lawyer briefing
+              </p>
+            </div>
+
+            {/* Metadata Grid */}
+            <div className="grid grid-cols-2 gap-4 rounded-lg border border-[#E0D7C6] bg-[#F7F3EA] p-4 text-xs sm:grid-cols-4">
+              <div>
+                <span className="font-mono text-[10px] uppercase text-[#8A94A1]">Document</span>
+                <p className="truncate font-semibold text-[#1B2430]">{memo.documentFilename}</p>
+              </div>
+              <div>
+                <span className="font-mono text-[10px] uppercase text-[#8A94A1]">Date</span>
+                <p className="font-semibold text-[#1B2430]">{memo.generatedDate}</p>
+              </div>
+              <div>
+                <span className="font-mono text-[10px] uppercase text-[#8A94A1]">Risk Profile</span>
+                <p className="font-semibold text-[#8C2F39]">
+                  {memo.highRiskCount} High-Risk / {memo.cautionCount} Caution
+                </p>
+              </div>
+              <div>
+                <span className="font-mono text-[10px] uppercase text-[#8A94A1]">Total Scope</span>
+                <p className="font-semibold text-[#1B2430]">{memo.totalClauses} Clauses</p>
+              </div>
+            </div>
+          </header>
+
+          {/* Section 1: Executive Action Checklist */}
+          <section aria-labelledby="action-checklist-heading" className="space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E0D7C6] pb-2">
+              <h2
+                id="action-checklist-heading"
+                className="font-serif text-base font-semibold text-[#1B2430]"
+              >
+                1. Executive Action Checklist (Before Signing)
+              </h2>
+              <span className="font-mono text-xs text-[#525D6B]">
+                {completedCount} of {memo.actionItems.length} completed
+              </span>
+            </div>
+
+            <ol className="space-y-2.5">
+              {memo.actionItems.map((item, idx) => {
+                const isChecked = !!checkedActions[item.id];
+                return (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => toggleAction(item.id)}
+                      className={`flex w-full cursor-pointer items-start gap-3 rounded border p-3 text-left transition-colors ${
+                        isChecked
+                          ? "border-[#3F6C51]/30 bg-[#EAF2EC]/50 text-[#525D6B]"
+                          : "border-[#E0D7C6] bg-white text-[#1B2430] hover:bg-[#FDFBF7]"
+                      }`}
+                    >
+                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border border-[#8A94A1]">
+                        {isChecked && <CheckCircle2 className="h-3.5 w-3.5 text-[#3F6C51]" />}
+                      </span>
+                      <div className="flex-1 text-xs leading-relaxed">
+                        <span className="mr-1.5 font-mono font-bold text-[#8C6D3B]">
+                          {idx + 1}.
+                        </span>
+                        <span className={isChecked ? "line-through" : ""}>{item.text}</span>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+
+          {/* Section 2: Questions for Your Lawyer (Bordered Card) */}
+          <LawyerQuestionsCard questions={memo.lawyerQuestions} />
+
+          {/* Section 3: Statutory Benchmarks Cited */}
+          {memo.statutoryCitations.length > 0 && (
+            <section
+              aria-labelledby="statutory-citations-heading"
+              className="space-y-2 rounded-lg border border-[#E0D7C6] bg-[#F7F3EA] p-4 text-xs"
+            >
+              <h3
+                id="statutory-citations-heading"
+                className="font-serif font-semibold text-[#1B2430]"
+              >
+                Statutory Provisions &amp; Standards Referenced
+              </h3>
+              <ul className="list-inside list-disc space-y-1 font-mono text-[11px] text-[#525D6B]">
+                {memo.statutoryCitations.map((citation, i) => (
+                  <li key={i}>{citation}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* Formal Legal Disclaimer Footer */}
+          <footer className="space-y-1 border-t border-[#E0D7C6] pt-6 text-[11px] italic leading-relaxed text-[#8A94A1]">
+            <p>
+              DISCLAIMER: This legal preparation memorandum was generated by NyaySetu based solely
+              on the four corners of <strong>{memo.documentFilename}</strong>. It is designed to
+              assist citizens and advocates at free legal-aid clinics and does not constitute formal
+              legal advice or an attorney-client relationship.
+            </p>
+          </footer>
+        </article>
+      ) : null}
     </div>
   );
 }

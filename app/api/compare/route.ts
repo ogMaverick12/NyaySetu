@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { ParsedDocumentSchema } from "@/features/ingestion/types";
+import { ClauseSchema } from "@/features/extraction/types";
 import {
   buildDeterministicBaselineComparison,
   buildComparePrompt,
@@ -19,6 +21,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       targetDoc?: unknown;
       baselineKey?: string;
       secondDoc?: unknown;
+      clauses?: unknown;
     };
 
     const targetParsed = ParsedDocumentSchema.safeParse(body.targetDoc);
@@ -31,6 +34,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 400 }
       );
     }
+
+    const clausesParsed = z.array(ClauseSchema).optional().safeParse(body.clauses);
+    const extractedClauses = clausesParsed.success ? clausesParsed.data : undefined;
 
     const mode = body.mode || "doc_vs_baseline";
 
@@ -49,14 +55,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           );
 
           // We can run the provider prompt or fallback
-          const baselineComp = buildDeterministicBaselineComparison(targetParsed.data, baselineKey);
+          const baselineComp = buildDeterministicBaselineComparison(
+            targetParsed.data,
+            baselineKey,
+            extractedClauses
+          );
           return NextResponse.json({ success: true, result: baselineComp });
         }
       } catch {
         // Graceful fallback to deterministic comparison
       }
 
-      const baselineComp = buildDeterministicBaselineComparison(targetParsed.data, baselineKey);
+      const baselineComp = buildDeterministicBaselineComparison(
+        targetParsed.data,
+        baselineKey,
+        extractedClauses
+      );
       return NextResponse.json({ success: true, result: baselineComp });
     }
 

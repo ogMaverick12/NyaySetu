@@ -111,5 +111,54 @@ describe("Contract Compare Mode & Sourced Baseline Templates (F4)", () => {
       expect(result.disadvantageousCount).toBeGreaterThanOrEqual(2);
       expect(() => ComparisonResultSchema.parse(result)).not.toThrow();
     });
+
+    it("should match extracted clauses and NOT report 'not explicitly stated' when clauses are provided", () => {
+      // Document with non-standard phrasing that would fail simple text regex
+      const obscureDoc: ParsedDocument = {
+        ...sampleTenantDoc,
+        fullText: "The resident pays an initial guarantee sum of seventy thousand rupees.",
+      };
+
+      const extractedClauses = [
+        {
+          id: "cl_1",
+          page: 1,
+          sourceText: "The resident pays an initial guarantee sum of seventy thousand rupees.",
+          type: "security_deposit",
+          plainSummary: "Resident pays 70,000 INR deposit.",
+          riskLevel: "caution" as const,
+          rationale: "Deposit exceeds one month advance.",
+        },
+        {
+          id: "cl_2",
+          page: 1,
+          sourceText: "Either party may conclude the agreement with thirty days writing.",
+          type: "notice_period",
+          plainSummary: "Reciprocal 30 days termination notice.",
+          riskLevel: "fair" as const,
+          rationale: "Equal reciprocal notice.",
+        },
+      ];
+
+      const result = buildDeterministicBaselineComparison(
+        obscureDoc,
+        "residential_tenancy",
+        extractedClauses
+      );
+
+      const depositDiff = result.differences.find((d) => d.clauseType === "security_deposit");
+      expect(depositDiff).toBeDefined();
+      expect(depositDiff?.targetText).toBe(
+        "The resident pays an initial guarantee sum of seventy thousand rupees."
+      );
+      expect(depositDiff?.targetText).not.toContain("Clause not explicitly stated");
+
+      const noticeDiff = result.differences.find((d) => d.clauseType === "notice_period");
+      expect(noticeDiff).toBeDefined();
+      expect(noticeDiff?.targetText).toBe(
+        "Either party may conclude the agreement with thirty days writing."
+      );
+      expect(noticeDiff?.targetText).not.toContain("Clause not explicitly stated");
+    });
   });
 });
