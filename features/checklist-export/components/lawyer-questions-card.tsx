@@ -62,7 +62,15 @@ export function LawyerQuestionsCard({ questions }: LawyerQuestionsCardProps): JS
                 {q.sourceClauseId && (
                   <span className="inline-flex items-center gap-1 font-mono text-[10px] text-[#525D6B]">
                     <ShieldAlert className="h-2.5 w-2.5 text-[#8C2F39]" />
-                    Seeded from clause {q.sourceClauseId}
+                    {q.sourceClauseId.startsWith("lawyer_q")
+                      ? "From consultation inquiry"
+                      : `Seeded from ${
+                          q.sourceClauseId.startsWith("cl_")
+                            ? /^\d+$/.test(q.sourceClauseId.replace(/^cl_/i, ""))
+                              ? `Clause ${q.sourceClauseId.replace(/^cl_/i, "")}`
+                              : `${q.sourceClauseId.replace(/^cl_/i, "").replace(/[_-]/g, " ")} clause`
+                            : `Clause ${q.sourceClauseId}`
+                        }`}
                   </span>
                 )}
               </div>

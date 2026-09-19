@@ -2,7 +2,13 @@ import { describe, it, expect } from "vitest";
 import { type ParsedDocument } from "@/features/ingestion/types";
 import { type Clause } from "@/features/extraction/types";
 import { ChecklistItemSchema } from "@/features/checklist-export/types";
-import { generateLegalMemo } from "@/features/checklist-export/services/checklist-generator";
+import {
+  generateLegalMemo,
+  isInternalId,
+  sanitizeText,
+  genericTemplatedQuestion,
+  generateQuestionWithRetry,
+} from "@/features/checklist-export/services/checklist-generator";
 import { buildLegalMemoPdf } from "@/features/checklist-export/services/pdf-exporter";
 
 const sampleDoc: ParsedDocument = {
@@ -232,6 +238,132 @@ describe("Action Checklist & Legal Memo Export (PRD F6)", () => {
       expect(lockInAction).toBeDefined();
       expect(lockInAction?.text.toLowerCase()).toMatch(/forfeit|penalt|lock.?in|early.?exit/);
       expect(lockInAction?.text.toLowerCase()).not.toContain("reciprocal notice");
+    });
+  });
+
+  // ── Raw Internal ID Leak Protection & Guard ─────────────────────────────
+  describe("Raw Internal ID Leak Protection & Guard", () => {
+    it("identifies internal IDs correctly with isInternalId", () => {
+      expect(isInternalId("cl_4")).toBe(true);
+      expect(isInternalId("CL_12")).toBe(true);
+      expect(isInternalId("lawyer_q_1789477754541")).toBe(true);
+      expect(isInternalId("act_1")).toBe(true);
+      expect(isInternalId("q_1")).toBe(true);
+      expect(isInternalId("item_5")).toBe(true);
+      expect(isInternalId("memo_12345")).toBe(true);
+      expect(isInternalId("")).toBe(true);
+      expect(isInternalId(null as unknown as string)).toBe(true);
+      expect(isInternalId("Is this clause legally enforceable?")).toBe(false);
+      expect(isInternalId("Ask your lawyer about the notice period clause")).toBe(false);
+    });
+
+    it("sanitizes text replacing raw IDs with generic fallback", () => {
+      const fallback = genericTemplatedQuestion("notice_period");
+      expect(sanitizeText("cl_4", fallback)).toBe("Ask your lawyer about the notice period clause");
+      expect(sanitizeText("lawyer_q_1789477754541", fallback)).toBe(
+        "Ask your lawyer about the notice period clause"
+      );
+      expect(sanitizeText("  ", fallback)).toBe("Ask your lawyer about the notice period clause");
+      expect(sanitizeText("Normal question?", fallback)).toBe("Normal question?");
+    });
+
+    it("generateQuestionWithRetry: retries on primary failure and falls back to templated question", () => {
+      const testClause: Clause = {
+        id: "cl_test_custom",
+        page: 1,
+        sourceText: "Arbitrary test terms.",
+        type: "liquidated_damages",
+        plainSummary: "Test summary",
+        riskLevel: "high-risk",
+        rationale: "Unfair terms",
+      };
+
+      // Case 1: Primary throws error -> retries and produces structured question
+      const resultAfterThrow = generateQuestionWithRetry(testClause, () => {
+        throw new Error("Primary generation failed");
+      });
+      expect(resultAfterThrow).not.toContain("cl_");
+      expect(resultAfterThrow).not.toContain("lawyer_q_");
+      expect(resultAfterThrow.toLowerCase()).toContain("liquidated damages");
+
+      // Case 2: Primary returns raw internal ID -> retries and avoids ID
+      const resultAfterRawId = generateQuestionWithRetry(testClause, () => "cl_test_custom");
+      expect(resultAfterRawId).not.toBe("cl_test_custom");
+      expect(resultAfterRawId).not.toContain("cl_");
+
+      // Case 3: Both primary and retry fail -> falls back to generic templated question
+      const brokenClause: Clause = {
+        ...testClause,
+        plainSummary: "cl_broken_id", // plainSummary also an ID
+      };
+      const finalFallbackResult = generateQuestionWithRetry(brokenClause, () => "cl_broken_id");
+      expect(finalFallbackResult).toBe("Ask your lawyer about the liquidated damages clause");
+    });
+
+    it("generateLegalMemo: handles bookmarked 'cl_4' without leaking raw ID into UI or memo", () => {
+      const clausesWithCl4: Clause[] = [
+        ...sampleClauses,
+        {
+          id: "cl_4",
+          page: 2,
+          sourceText: "The company may deactivate worker account without notice.",
+          type: "account_deactivation",
+          plainSummary: "Company can deactivate account at any time without warning.",
+          riskLevel: "caution",
+          rationale: "Unilateral deactivation power.",
+        },
+      ];
+
+      // Pass "cl_4" into bookmarkedQuestions (simulating citizen-flagged clause ID)
+      const memo = generateLegalMemo(sampleDoc, clausesWithCl4, ["cl_4"]);
+
+      // Verify NO question contains raw "cl_4"
+      memo.lawyerQuestions.forEach((q) => {
+        expect(q.text).not.toBe("cl_4");
+        expect(q.text).not.toMatch(/^cl_\d+$/i);
+      });
+
+      // The question for cl_4 should be generated or templated
+      const qForCl4 = memo.lawyerQuestions.find((q) => q.sourceClauseId === "cl_4");
+      expect(qForCl4).toBeDefined();
+      expect(qForCl4?.text.toLowerCase()).toMatch(/deactivation|fairwork|account/i);
+      expect(qForCl4?.text).not.toBe("cl_4");
+    });
+
+    it("generateLegalMemo: handles synthetic 'lawyer_q_1789477754541' without leaking ID", () => {
+      const memo = generateLegalMemo(sampleDoc, sampleClauses, ["lawyer_q_1789477754541"]);
+
+      // Verify NO question text is or contains the raw ID
+      memo.lawyerQuestions.forEach((q) => {
+        expect(q.text).not.toContain("lawyer_q_1789477754541");
+        expect(q.text).not.toMatch(/lawyer_q_\d+/i);
+      });
+
+      // All action items also free of internal IDs
+      memo.actionItems.forEach((a) => {
+        expect(a.text).not.toMatch(/^(cl_\d+|act_\d+|q_\d+|item_\d+|lawyer_q_\d+)$/i);
+      });
+    });
+
+    it("generateLegalMemo: never outputs raw 'cl_X' in any question when clause plainSummary is an ID", () => {
+      const maliciousClauses: Clause[] = [
+        {
+          id: "cl_5",
+          page: 1,
+          sourceText: "Some text",
+          type: "arbitration_clause",
+          plainSummary: "cl_5", // Broken summary containing only the ID
+          riskLevel: "high-risk",
+          rationale: "Unfair",
+        },
+      ];
+
+      const memo = generateLegalMemo(sampleDoc, maliciousClauses);
+      const question = memo.lawyerQuestions[0];
+      expect(question).toBeDefined();
+      expect(question.text).not.toBe("cl_5");
+      expect(question.text).not.toMatch(/^cl_\d+$/i);
+      expect(question.text).toBe("Ask your lawyer about the arbitration clause clause");
     });
   });
 

@@ -47,6 +47,9 @@ function NyaySetuApp(): JSX.Element {
   const [activeDoc, setActiveDoc] = useState<ParsedDocument | null>(null);
   // Bumping this key forces IntakeDesk to remount and clear its internal state
   const [intakeDeskKey, setIntakeDeskKey] = useState(0);
+  // QA questions explicitly flagged for lawyer — stores the question TEXT, not an ID
+  const [flaggedQAQuestions, setFlaggedQAQuestions] = useState<string[]>([]);
+
   const {
     clauses,
     state: extractionState,
@@ -77,10 +80,19 @@ function NyaySetuApp(): JSX.Element {
     }
   };
 
+  // Stores the actual question text (not an ID) into the lawyer-prep list
+  const handleFlagQAForLawyer = (questionText: string) => {
+    const clean = questionText.replace(/^Question:\s*/i, "").trim();
+    if (clean && !flaggedQAQuestions.includes(clean)) {
+      setFlaggedQAQuestions((prev) => [...prev, clean]);
+    }
+  };
+
   const handleDataDeleted = () => {
     setActiveDoc(null);
     resetClauses();
     setActiveView("intake");
+    setFlaggedQAQuestions([]);
     // Force IntakeDesk remount to clear its internal document/status state
     setIntakeDeskKey((k) => k + 1);
   };
@@ -476,8 +488,8 @@ function NyaySetuApp(): JSX.Element {
                 <ConsultationTranscriptPanel
                   doc={activeDoc}
                   clauses={clauses}
-                  onFlagForLawyer={(_questionText, _rationale) => {
-                    toggleFlagForLawyer(`lawyer_q_${Date.now()}`);
+                  onFlagForLawyer={(questionText, _rationale) => {
+                    handleFlagQAForLawyer(questionText);
                   }}
                 />
               ) : (
@@ -506,7 +518,7 @@ function NyaySetuApp(): JSX.Element {
                 <ChecklistMemoScreen
                   doc={activeDoc}
                   clauses={clauses}
-                  bookmarkedQuestions={Array.from(flaggedForLawyer)}
+                  bookmarkedQuestions={[...flaggedQAQuestions, ...Array.from(flaggedForLawyer)]}
                 />
               ) : (
                 <div className="space-y-4 rounded-lg border border-dashed border-border bg-card p-12 text-center">
