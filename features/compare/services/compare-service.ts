@@ -93,7 +93,7 @@ export function buildDeterministicBaselineComparison(
 
     let targetExcerpt = "Clause not explicitly stated in uploaded document.";
     let impact: "favorable" | "disadvantageous" | "neutral" = "disadvantageous";
-    let explanation = `The uploaded document lacks the standard ${baseClause.title} protection guaranteed under ${baseline.sourcedReference}.`;
+    let explanation = `The uploaded document lacks the standard ${baseClause.title} protection, a recommended baseline under ${baseline.sourcedReference} — adopted by some states; confirm your state's position.`;
     let severity: "low" | "medium" | "high" = "high";
 
     // Detect deposit terms

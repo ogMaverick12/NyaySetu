@@ -19,6 +19,7 @@ import {
   Building2,
   Bike,
   Briefcase,
+  Info,
 } from "lucide-react";
 
 interface CompareScreenProps {
@@ -249,14 +250,23 @@ export function CompareScreen({
           </div>
         )}
 
-        {/* Provenance note */}
-        <div className="flex items-center pt-1 font-mono text-[11px] text-muted-foreground">
-          <Scale className="mr-1.5 h-3.5 w-3.5 text-[#B08D57]" />
-          <span>
-            Baseline Reference:{" "}
-            <span className="font-medium text-primary">{activeBaseline.sourcedReference}</span>{" "}
-            (Sourced non-LLM statutory norm)
-          </span>
+        {/* Provenance note & Enforceability Advisory */}
+        <div className="flex flex-col gap-1.5 border-t border-border/60 pt-3">
+          <div className="flex items-center font-mono text-[11px] text-muted-foreground">
+            <Scale className="mr-1.5 h-3.5 w-3.5 shrink-0 text-[#B08D57]" />
+            <span>
+              Baseline Reference:{" "}
+              <span className="font-medium text-primary">{activeBaseline.sourcedReference}</span>{" "}
+              (Sourced non-LLM statutory norm)
+            </span>
+          </div>
+          <div className="flex items-center text-xs text-[#684B1E]">
+            <Info className="mr-1.5 h-3.5 w-3.5 shrink-0 text-[#B08D57]" />
+            <span>
+              Note: This baseline is a fair-practice benchmark, not automatically enforceable
+              everywhere (confirm your state&apos;s statutory adoption).
+            </span>
+          </div>
         </div>
       </div>
 
@@ -311,6 +321,16 @@ export function CompareScreen({
         </div>
       ) : comparisonResult ? (
         <div className="space-y-5">
+          {/* Baseline Benchmark Notice */}
+          <div className="flex items-center gap-2 rounded-md border border-[#B08D57]/30 bg-[#FAF4E8] px-3.5 py-2.5 text-xs text-[#684B1E]">
+            <Info className="h-4 w-4 shrink-0 text-[#B08D57]" />
+            <p>
+              <span className="font-semibold">Benchmark Advisory:</span> This baseline is a
+              fair-practice benchmark, not automatically enforceable everywhere. Confirm your
+              state&apos;s statutory position.
+            </p>
+          </div>
+
           {/* Summary Metric Ribbon */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="flex items-center justify-between rounded-md border border-[#8C2F39]/40 bg-[#F7ECEE] p-4">

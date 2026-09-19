@@ -1,4 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import React from "react";
+import { render, act } from "@testing-library/react";
 import {
   BASELINE_TEMPLATES,
   buildDeterministicBaselineComparison,
@@ -6,6 +8,7 @@ import {
   ComparisonResultSchema,
   type ComparisonDifference,
 } from "@/features/compare";
+import { CompareScreen } from "@/features/compare/components/compare-screen";
 import { type ParsedDocument } from "@/features/ingestion/types";
 
 describe("Contract Compare Mode & Sourced Baseline Templates (F4)", () => {
@@ -159,6 +162,59 @@ describe("Contract Compare Mode & Sourced Baseline Templates (F4)", () => {
         "Either party may conclude the agreement with thirty days writing."
       );
       expect(noticeDiff?.targetText).not.toContain("Clause not explicitly stated");
+    });
+
+    it("should use 'recommended baseline' framing and NOT use 'guaranteed under' when clause is absent", () => {
+      // Document lacking landlord entry and maintenance clauses
+      const result = buildDeterministicBaselineComparison(sampleTenantDoc, "residential_tenancy");
+
+      // Verify no difference explanation contains 'guaranteed under'
+      result.differences.forEach((diff) => {
+        expect(diff.explanation).not.toContain("guaranteed under");
+      });
+
+      // Find an absent clause (e.g. landlord_entry or maintenance_repairs)
+      const absentDiff = result.differences.find(
+        (d) => d.clauseType === "landlord_entry" || d.clauseType === "maintenance_repairs"
+      );
+      expect(absentDiff).toBeDefined();
+      expect(absentDiff?.explanation).toContain(
+        "a recommended baseline under Ministry of Housing & Urban Affairs — Model Tenancy Act (2021) — adopted by some states; confirm your state's position"
+      );
+      expect(absentDiff?.explanation).not.toContain("guaranteed under");
+    });
+  });
+
+  describe("CompareScreen UI Advisory Note", () => {
+    it("renders the fair-practice benchmark advisory note in the Compare view", async () => {
+      const originalFetch = global.fetch;
+      global.fetch = vi.fn().mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, result: null }),
+        } as Response)
+      );
+
+      let container: HTMLElement;
+      await act(async () => {
+        await Promise.resolve();
+        const rendered = render(
+          React.createElement(CompareScreen, {
+            primaryDocument: sampleTenantDoc,
+            extractionStatus: "success",
+            clauses: [],
+          })
+        );
+        container = rendered.container;
+      });
+
+      // Verify the advisory text explaining it is a fair-practice benchmark and not automatically enforceable everywhere
+      expect(container!.textContent).toContain(
+        "This baseline is a fair-practice benchmark, not automatically enforceable everywhere"
+      );
+      expect(container!.textContent).not.toContain("guaranteed under");
+
+      global.fetch = originalFetch;
     });
   });
 });
