@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { type ParsedDocument } from "@/features/ingestion/types";
-import { type Clause } from "@/features/extraction/types";
+import { type Clause, type DocumentType, detectDocumentType } from "@/features/extraction";
 import { generateLegalMemo } from "../services/checklist-generator";
 import { exportLegalMemoToPdf } from "../services/pdf-exporter";
 import { LawyerQuestionsCard } from "./lawyer-questions-card";
@@ -16,6 +16,7 @@ interface ChecklistMemoScreenProps {
   extractionStatus?: "idle" | "extracting" | "success" | "error";
   onRunExtraction?: () => void;
   bookmarkedQuestions?: string[];
+  documentType?: DocumentType;
 }
 
 export function ChecklistMemoScreen({
@@ -24,6 +25,7 @@ export function ChecklistMemoScreen({
   extractionStatus = "idle",
   onRunExtraction,
   bookmarkedQuestions = [],
+  documentType,
 }: ChecklistMemoScreenProps): JSX.Element {
   const { questions: storeQuestions } = useLawyerChecklist();
 
@@ -35,9 +37,14 @@ export function ChecklistMemoScreen({
     return Array.from(combined);
   }, [bookmarkedQuestions, storeQuestions]);
 
+  const docType = documentType || detectDocumentType(doc);
+
   const memo = useMemo(
-    () => (isExtractionComplete ? generateLegalMemo(doc, clauses, allBookmarkedQuestions) : null),
-    [doc, clauses, allBookmarkedQuestions, isExtractionComplete]
+    () =>
+      isExtractionComplete
+        ? generateLegalMemo(doc, clauses, allBookmarkedQuestions, docType)
+        : null,
+    [doc, clauses, allBookmarkedQuestions, isExtractionComplete, docType]
   );
 
   const [checkedActions, setCheckedActions] = useState<Record<string, boolean>>({});

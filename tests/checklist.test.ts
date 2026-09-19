@@ -509,4 +509,231 @@ describe("Action Checklist & Legal Memo Export (PRD F6)", () => {
       lawyerChecklistStore.clear();
     });
   });
+
+  // ── Deduplication of Action Items & Lawyer Questions ─────────────────────
+  describe("Action Item & Lawyer Question Deduplication", () => {
+    it("deduplicates identical recommendations produced by multiple notice clauses (e.g. 30-day and 60-day notice)", () => {
+      const dualNoticeClauses: Clause[] = [
+        {
+          id: "cl_notice_30",
+          page: 1,
+          sourceText: "Landlord may terminate the lease by serving thirty (30) days notice.",
+          type: "notice_period",
+          plainSummary: "Landlord 30-day termination notice requirement.",
+          riskLevel: "high-risk",
+          rationale: "Unilateral notice clause.",
+        },
+        {
+          id: "cl_notice_60",
+          page: 2,
+          sourceText:
+            "Tenant must serve at least sixty (60) days written notice before termination.",
+          type: "termination_notice",
+          plainSummary: "Tenant 60-day notice requirement.",
+          riskLevel: "high-risk",
+          rationale: "Asymmetric notice burden.",
+        },
+      ];
+
+      const memo = generateLegalMemo(sampleDoc, dualNoticeClauses, [], "tenancy");
+
+      // Verify reciprocal notice action item exists
+      const reciprocalNoticeActions = memo.actionItems.filter((item) =>
+        item.text.toLowerCase().includes("reciprocal notice")
+      );
+
+      // Must be deduplicated down to exactly 1 recommendation
+      expect(reciprocalNoticeActions.length).toBe(1);
+      expect(reciprocalNoticeActions[0].text).toContain(
+        "Negotiate equal reciprocal notice: propose an identical 30-day termination notice requirement for both tenant and landlord in writing."
+      );
+
+      // Ensure every action item in the memo has a unique text
+      const actionTexts = memo.actionItems.map((a) => a.text.trim().toLowerCase());
+      const uniqueActionTexts = new Set(actionTexts);
+      expect(actionTexts.length).toBe(uniqueActionTexts.size);
+
+      // Verify sequential ID assignment
+      memo.actionItems.forEach((item, idx) => {
+        expect(item.id).toBe(`act_${idx + 1}`);
+      });
+    });
+
+    it("deduplicates identical lawyer questions if multiple clauses generate the same question text", () => {
+      const duplicateClauses: Clause[] = [
+        {
+          id: "cl_indem_1",
+          page: 1,
+          sourceText: "Tenant indemnifies landlord against all liabilities unconditionally.",
+          type: "indemnity_liability",
+          plainSummary: "Tenant indemnifies landlord unconditionally.",
+          riskLevel: "high-risk",
+          rationale: "Uncapped indemnity.",
+        },
+        {
+          id: "cl_indem_2",
+          page: 2,
+          sourceText: "Tenant agrees to hold landlord harmless from any and all damages.",
+          type: "indemnity_liability",
+          plainSummary: "Tenant indemnifies landlord unconditionally.",
+          riskLevel: "high-risk",
+          rationale: "Uncapped indemnity duplicate.",
+        },
+      ];
+
+      const memo = generateLegalMemo(sampleDoc, duplicateClauses, [], "tenancy");
+
+      const indemnityQuestions = memo.lawyerQuestions.filter((q) =>
+        q.text.includes("Section 124 of the Indian Contract Act")
+      );
+      expect(indemnityQuestions.length).toBe(1);
+
+      // Verify sequential ID assignment for questions
+      memo.lawyerQuestions.forEach((item, idx) => {
+        expect(item.id).toBe(`q_${idx + 1}`);
+      });
+    });
+  });
+
+  // ── Document Type-Appropriate Vocabulary (Prevention of Bleed) ───────────
+  describe("Document Type-Appropriate Vocabulary (No Template Bleed)", () => {
+    const indemnityClause: Clause = {
+      id: "cl_indemnity_test",
+      page: 1,
+      sourceText: "Second party shall indemnify the first party unconditionally for any loss.",
+      type: "indemnity_liability",
+      plainSummary: "Uncapped unilateral indemnity obligations.",
+      riskLevel: "high-risk",
+      rationale: "Severe one-sided indemnity.",
+    };
+
+    const deactivationClause: Clause = {
+      id: "cl_deact_test",
+      page: 2,
+      sourceText: "First party may terminate access or lock out without notice or cause.",
+      type: "deactivation",
+      plainSummary: "Unilateral termination without prior notice.",
+      riskLevel: "high-risk",
+      rationale: "Arbitrary lockout / deactivation.",
+    };
+
+    it("uses tenancy terms (tenant/landlord/rent) and excludes gig vocabulary (contractor/fees) for tenancy documents", () => {
+      const memo = generateLegalMemo(
+        sampleDoc,
+        [indemnityClause, deactivationClause],
+        [],
+        "tenancy"
+      );
+
+      const indemAction = memo.actionItems.find((a) => a.sourceClauseId === "cl_indemnity_test");
+      expect(indemAction).toBeDefined();
+      expect(indemAction?.text).toContain("tenant");
+      expect(indemAction?.text).toContain("landlord");
+      expect(indemAction?.text).toContain("rent");
+      expect(indemAction?.text).not.toContain("individual contractor");
+      expect(indemAction?.text).not.toContain("fees received");
+
+      const indemQuestion = memo.lawyerQuestions.find(
+        (q) => q.sourceClauseId === "cl_indemnity_test"
+      );
+      expect(indemQuestion).toBeDefined();
+      expect(indemQuestion?.text).toContain("tenant");
+      expect(indemQuestion?.text).toContain("landlord");
+      expect(indemQuestion?.text).not.toContain("individual contractor");
+      expect(indemQuestion?.text).not.toContain("fees received");
+
+      const deactAction = memo.actionItems.find((a) => a.sourceClauseId === "cl_deact_test");
+      expect(deactAction).toBeDefined();
+      expect(deactAction?.text).toContain("rent payments");
+      expect(deactAction?.text).toContain("eviction");
+      expect(deactAction?.text).not.toContain("delivery logs");
+
+      const deactQuestion = memo.lawyerQuestions.find((q) => q.sourceClauseId === "cl_deact_test");
+      expect(deactQuestion).toBeDefined();
+      expect(deactQuestion?.text).toContain("landlord");
+      expect(deactQuestion?.text).toContain("eviction");
+      expect(deactQuestion?.text).not.toContain("platform");
+      expect(deactQuestion?.text).not.toContain("Fairwork");
+
+      expect(memo.statutoryCitations).toContain(
+        "Model Tenancy Act, 2021 (Sec 21 — Protection Against Unlawful Eviction)"
+      );
+    });
+
+    it("uses gig-partner vocabulary (fees received/contractor/platform) when documentType is gig-partner", () => {
+      const gigDoc: ParsedDocument = {
+        ...sampleDoc,
+        id: "doc_gig_test",
+        filename: "Zomato_Delivery_Partner_Agreement.pdf",
+        fullText: "Delivery Partner Agreement with Platform fees and payouts.",
+      };
+
+      const memo = generateLegalMemo(
+        gigDoc,
+        [indemnityClause, deactivationClause],
+        [],
+        "gig-partner"
+      );
+
+      const indemAction = memo.actionItems.find((a) => a.sourceClauseId === "cl_indemnity_test");
+      expect(indemAction).toBeDefined();
+      expect(indemAction?.text).toContain("fees received");
+      expect(indemAction?.text).not.toContain("rent");
+
+      const indemQuestion = memo.lawyerQuestions.find(
+        (q) => q.sourceClauseId === "cl_indemnity_test"
+      );
+      expect(indemQuestion).toBeDefined();
+      expect(indemQuestion?.text).toContain("individual contractor");
+      expect(indemQuestion?.text).not.toContain("tenant");
+
+      const deactAction = memo.actionItems.find((a) => a.sourceClauseId === "cl_deact_test");
+      expect(deactAction).toBeDefined();
+      expect(deactAction?.text).toContain("delivery logs");
+
+      const deactQuestion = memo.lawyerQuestions.find((q) => q.sourceClauseId === "cl_deact_test");
+      expect(deactQuestion).toBeDefined();
+      expect(deactQuestion?.text).toContain("platform");
+      expect(deactQuestion?.text).toContain("Fairwork");
+
+      expect(memo.statutoryCitations).toContain(
+        "Fairwork India Principles (Fair Contracts & Appeals)"
+      );
+    });
+
+    it("uses employment vocabulary (employee/employer/salary) when documentType is employment", () => {
+      const empDoc: ParsedDocument = {
+        ...sampleDoc,
+        id: "doc_emp_test",
+        filename: "Senior_Software_Engineer_Offer_Letter.pdf",
+        fullText: "Employment agreement covering employee duties, salary, and termination.",
+      };
+
+      const memo = generateLegalMemo(
+        empDoc,
+        [indemnityClause, deactivationClause],
+        [],
+        "employment"
+      );
+
+      const indemAction = memo.actionItems.find((a) => a.sourceClauseId === "cl_indemnity_test");
+      expect(indemAction).toBeDefined();
+      expect(indemAction?.text).toContain("employee");
+      expect(indemAction?.text).not.toContain("fees received");
+      expect(indemAction?.text).not.toContain("rent");
+
+      const indemQuestion = memo.lawyerQuestions.find(
+        (q) => q.sourceClauseId === "cl_indemnity_test"
+      );
+      expect(indemQuestion).toBeDefined();
+      expect(indemQuestion?.text).toContain("employee");
+      expect(indemQuestion?.text).toContain("employer");
+      expect(indemQuestion?.text).not.toContain("individual contractor");
+
+      const deactQuestion = memo.lawyerQuestions.find((q) => q.sourceClauseId === "cl_deact_test");
+      expect(deactQuestion).toBeDefined();
+      expect(deactQuestion?.text).toContain("employer");
+      expect(deactQuestion?.text).toContain("Industrial Disputes Act");
+    });
+  });
 });

@@ -1,5 +1,6 @@
 import { type ParsedDocument } from "@/features/ingestion/types";
 import { type Clause } from "@/features/extraction/types";
+import { detectDocumentType, type DocumentType } from "@/features/extraction";
 import { type DocumentContextChunk } from "../types";
 
 export const QA_SYSTEM_INSTRUCTION = `
@@ -14,7 +15,11 @@ CRITICAL INSTRUCTIONS & SCOPE CONSTRAINTS:
    - For any out-of-scope question, "answer" MUST explicitly state: "This topic is not covered in the provided document."
    - For out-of-scope questions, NEVER provide freeform legal advice, speculative answers, or ungrounded conclusions.
    - For out-of-scope questions, ALWAYS provide a "lawyerPrepSuggestion" advising: "This topic falls outside the provisions of this agreement. Consider adding this question to your Lawyer-Prep Checklist to consult with a legal professional."
-4. OUTPUT FORMAT: Respond ONLY with a single valid JSON object adhering to this schema:
+4. VOCABULARY & DOMAIN ACCURACY:
+   - Tenancy agreements: Use "tenant", "landlord", "rent", "security deposit", "premises". Never use gig or contractor terms ("individual contractor", "fees received").
+   - Gig-partner agreements: Use "partner", "contractor", "platform", "fees received".
+   - Employment contracts: Use "employee", "employer", "salary".
+5. OUTPUT FORMAT: Respond ONLY with a single valid JSON object adhering to this schema:
 {
   "isCovered": boolean,
   "answer": "string (plain-language explanation grounded strictly in the text)",
@@ -37,8 +42,23 @@ export function buildQAUserPrompt(
   doc: ParsedDocument,
   question: string,
   relevantChunks: DocumentContextChunk[],
-  clauses?: Clause[]
+  clauses?: Clause[],
+  documentType?: DocumentType
 ): string {
+  const docType = documentType || detectDocumentType(doc);
+
+  let typeGuidance = "";
+  if (docType === "tenancy") {
+    typeGuidance = `DOCUMENT TYPE: Tenancy Agreement (Residential/Commercial Lease).
+Use tenancy terms (tenant/landlord/rent). Never use contractor/fees terms.`;
+  } else if (docType === "gig-partner") {
+    typeGuidance = `DOCUMENT TYPE: Gig-Partner Agreement.
+Use gig terms (partner/platform/fees).`;
+  } else {
+    typeGuidance = `DOCUMENT TYPE: Employment Contract.
+Use employment terms (employee/employer/salary).`;
+  }
+
   const clausesContext = (clauses || [])
     .map(
       (c) =>
@@ -54,6 +74,7 @@ export function buildQAUserPrompt(
 DOCUMENT CONTEXT:
 Filename: "${doc.filename}"
 Total Pages: ${doc.pageCount}
+${typeGuidance}
 
 RELEVANT EXTRACTED CLAUSES:
 ${clausesContext || "None extracted."}

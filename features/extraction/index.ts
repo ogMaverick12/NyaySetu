@@ -5,6 +5,8 @@ export { validateAndParseClauses, cleanJsonString } from "./services/clause-vali
 export {
   CLAUSE_EXTRACTION_SYSTEM_INSTRUCTION,
   buildExtractionUserPrompt,
+  detectDocumentType,
+  type DocumentType,
 } from "./services/extraction-prompt";
 export {
   type Clause,

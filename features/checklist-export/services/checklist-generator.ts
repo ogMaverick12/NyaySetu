@@ -1,5 +1,5 @@
 import { type ParsedDocument } from "@/features/ingestion/types";
-import { type Clause } from "@/features/extraction/types";
+import { type Clause, detectDocumentType, type DocumentType } from "@/features/extraction";
 import { ChecklistItemSchema, type ChecklistItem, type LegalMemo } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -283,10 +283,20 @@ function getClauseCategory(clause: Clause): ClauseCategory {
 /**
  * Generates the specific lawyer question for a given clause category.
  */
-function buildCategoryLawyerQuestion(clause: Clause, category: ClauseCategory): string {
+function buildCategoryLawyerQuestion(
+  clause: Clause,
+  category: ClauseCategory,
+  docType: DocumentType = "tenancy"
+): string {
   switch (category) {
     case "termination_notice":
-      return `Is the asymmetric notice provision ("${clause.plainSummary}") legally enforceable? Under Section 106 of the Transfer of Property Act, 1882, monthly tenancies require at minimum 15 days' notice from either side — does this clause meet or restrict that statutory floor?`;
+      if (docType === "tenancy") {
+        return `Is the asymmetric notice provision ("${clause.plainSummary}") legally enforceable? Under Section 106 of the Transfer of Property Act, 1882, monthly tenancies require at minimum 15 days' notice from either side — does this clause meet or restrict that statutory floor?`;
+      }
+      if (docType === "employment") {
+        return `Is the asymmetric notice provision ("${clause.plainSummary}") enforceable under applicable Shops and Establishments regulations, and does it require reciprocal notice from the employer?`;
+      }
+      return `Is the asymmetric notice provision ("${clause.plainSummary}") legally enforceable against an independent partner or contractor?`;
 
     case "lock_in_penalty":
       return `The lock-in / early-exit clause states: "${clause.plainSummary}". Under Section 74 of the Indian Contract Act, 1872, a court may award only 'reasonable compensation' even where a pre-fixed penalty amount is stipulated — is the amount here disproportionate such that a court would reduce it?`;
@@ -295,12 +305,24 @@ function buildCategoryLawyerQuestion(clause: Clause, category: ClauseCategory): 
       return `The rent-escalation clause provides: "${clause.plainSummary}". Is this rate commercially reasonable, and does the applicable State Rent Control Act impose any ceiling on annual rent increases for this category of premises?`;
 
     case "indemnity_liability":
-      return `Can uncapped unilateral indemnification be enforced against an individual without proving gross negligence, and is this consistent with Section 124 of the Indian Contract Act, 1872?`;
+      if (docType === "tenancy") {
+        return `Can the landlord enforce unilateral uncapped indemnification against the tenant without proving gross negligence, and is this consistent with Section 124 of the Indian Contract Act, 1872?`;
+      }
+      if (docType === "employment") {
+        return `Can the employer hold the employee liable for uncapped indemnity during ordinary employment duties under Section 124 of the Indian Contract Act, 1872?`;
+      }
+      return `Can uncapped unilateral indemnification be enforced against an individual contractor without proving gross negligence, and is this consistent with Section 124 of the Indian Contract Act, 1872?`;
 
     case "non_compete":
       return `Is this post-termination non-compete restraint void as a matter of law under Section 27 of the Indian Contract Act, 1872?`;
 
     case "deactivation":
+      if (docType === "tenancy") {
+        return `Does the landlord's unilateral lockout, eviction, or deactivation clause violate statutory tenant protections under the applicable Rent Control Act or Model Tenancy Act?`;
+      }
+      if (docType === "employment") {
+        return `Does the employer's unilateral termination clause violate the Industrial Disputes Act, 1947 or principles of natural justice?`;
+      }
       return `Does the platform's unilateral deactivation clause violate natural justice or the fair contract principles outlined in the Fairwork India 2020 guidelines?`;
 
     case "security_deposit":
@@ -314,9 +336,19 @@ function buildCategoryLawyerQuestion(clause: Clause, category: ClauseCategory): 
 /**
  * Generates the specific action item for a given clause category.
  */
-function buildCategoryAction(clause: Clause, category: ClauseCategory): string {
+function buildCategoryAction(
+  clause: Clause,
+  category: ClauseCategory,
+  docType: DocumentType = "tenancy"
+): string {
   switch (category) {
     case "termination_notice":
+      if (docType === "tenancy") {
+        return "Negotiate equal reciprocal notice: propose an identical 30-day termination notice requirement for both tenant and landlord in writing.";
+      }
+      if (docType === "employment") {
+        return "Negotiate equal reciprocal notice: propose an identical 30-day termination notice requirement for both employee and employer in writing.";
+      }
       return "Negotiate equal reciprocal notice: propose an identical 30-day termination notice requirement for both parties in writing.";
 
     case "lock_in_penalty":
@@ -326,12 +358,24 @@ function buildCategoryAction(clause: Clause, category: ClauseCategory): string {
       return `Cap the escalation rate in writing: counter-propose a fixed annual increment not exceeding 5–8 % or CPI-linked, whichever is lower. "${clause.plainSummary}".`;
 
     case "indemnity_liability":
+      if (docType === "tenancy") {
+        return "Request a liability cap limiting tenant liability to a defined amount (e.g., 1–2 months' rent) and require mutual indemnification from the landlord for premises claims.";
+      }
+      if (docType === "employment") {
+        return "Request a liability cap limiting employee liability and ensure indemnification excludes ordinary performance of employment duties in good faith.";
+      }
       return "Request a liability cap limiting total claims to fees received over the preceding 3–6 months and require mutual indemnification.";
 
     case "non_compete":
       return "Identify all prospective clients or geographic areas affected by the restrictive covenant before entering post-contract commitments.";
 
     case "deactivation":
+      if (docType === "tenancy") {
+        return "Maintain written receipts of rent payments and documented inspection records to contest any arbitrary lockout or unlawful eviction.";
+      }
+      if (docType === "employment") {
+        return "Maintain personal copies of offer letters, appraisals, and written communications to contest arbitrary dismissal.";
+      }
       return "Maintain personal offline archives of all delivery logs, dispute records, and customer ratings to contest arbitrary account suspension.";
 
     case "security_deposit":
@@ -349,8 +393,10 @@ function buildCategoryAction(clause: Clause, category: ClauseCategory): string {
 export function generateLegalMemo(
   doc: ParsedDocument,
   clauses: Clause[],
-  bookmarkedQuestions: string[] = []
+  bookmarkedQuestions: string[] = [],
+  documentType?: DocumentType
 ): LegalMemo {
+  const docType: DocumentType = documentType || detectDocumentType(doc);
   const highRiskClauses = clauses.filter((c) => c.riskLevel === "high-risk");
   const cautionClauses = clauses.filter((c) => c.riskLevel === "caution");
 
@@ -365,7 +411,9 @@ export function generateLegalMemo(
     const category = getClauseCategory(clause);
 
     // Generate action with retry and generic templated fallback
-    const actionText = generateActionWithRetry(clause, () => buildCategoryAction(clause, category));
+    const actionText = generateActionWithRetry(clause, () =>
+      buildCategoryAction(clause, category, docType)
+    );
     actionItems.push(
       makeItem({
         id: `act_${itemCounter++}`,
@@ -378,7 +426,7 @@ export function generateLegalMemo(
 
     // Generate question with retry and generic templated fallback
     const questionText = generateQuestionWithRetry(clause, () =>
-      buildCategoryLawyerQuestion(clause, category)
+      buildCategoryLawyerQuestion(clause, category, docType)
     );
     lawyerQuestions.push(
       makeItem({
@@ -390,11 +438,18 @@ export function generateLegalMemo(
       })
     );
 
-    // Add appropriate statutory citations based on verified category
+    // Add appropriate statutory citations based on verified category & document type
     switch (category) {
       case "termination_notice":
-        statutoryCitationsSet.add("Transfer of Property Act, 1882 (Sec 106 — Notice to Quit)");
-        statutoryCitationsSet.add("Model Tenancy Act, 2021 (Reciprocal Termination Rights)");
+        if (docType === "tenancy") {
+          statutoryCitationsSet.add("Transfer of Property Act, 1882 (Sec 106 — Notice to Quit)");
+          statutoryCitationsSet.add("Model Tenancy Act, 2021 (Reciprocal Termination Rights)");
+        } else if (docType === "employment") {
+          statutoryCitationsSet.add("State Shops and Establishments Act (Notice of Termination)");
+        } else {
+          statutoryCitationsSet.add("Indian Contract Act, 1872 (Sec 73 — Breach and Notice)");
+          statutoryCitationsSet.add("Fairwork India Principles (Fair Contracts)");
+        }
         break;
       case "lock_in_penalty":
         statutoryCitationsSet.add(
@@ -415,7 +470,17 @@ export function generateLegalMemo(
         );
         break;
       case "deactivation":
-        statutoryCitationsSet.add("Fairwork India Principles (Fair Contracts & Appeals)");
+        if (docType === "tenancy") {
+          statutoryCitationsSet.add(
+            "Model Tenancy Act, 2021 (Sec 21 — Protection Against Unlawful Eviction)"
+          );
+        } else if (docType === "employment") {
+          statutoryCitationsSet.add(
+            "Industrial Disputes Act, 1947 (Dispute Resolution & Natural Justice)"
+          );
+        } else {
+          statutoryCitationsSet.add("Fairwork India Principles (Fair Contracts & Appeals)");
+        }
         break;
     }
   });
@@ -428,7 +493,9 @@ export function generateLegalMemo(
       actionItems.push(
         makeItem({
           id: `act_${itemCounter++}`,
-          text: generateActionWithRetry(clause, () => buildCategoryAction(clause, category)),
+          text: generateActionWithRetry(clause, () =>
+            buildCategoryAction(clause, category, docType)
+          ),
           kind: "action",
           sourceClauseId: clause.id,
           fallback: genericTemplatedAction(clause.type),
@@ -438,7 +505,7 @@ export function generateLegalMemo(
         makeItem({
           id: `q_${itemCounter++}`,
           text: generateQuestionWithRetry(clause, () =>
-            buildCategoryLawyerQuestion(clause, category)
+            buildCategoryLawyerQuestion(clause, category, docType)
           ),
           kind: "lawyer_question",
           sourceClauseId: clause.id,
@@ -517,7 +584,7 @@ export function generateLegalMemo(
 
       const cat = getClauseCategory(matchedClause);
       const generated = generateQuestionWithRetry(matchedClause, () =>
-        buildCategoryLawyerQuestion(matchedClause, cat)
+        buildCategoryLawyerQuestion(matchedClause, cat, docType)
       );
 
       lawyerQuestions.push(
@@ -596,6 +663,35 @@ export function generateLegalMemo(
     );
   }
 
+  // ── 6. Deduplicate action items & lawyer questions by generated text ─────
+  const dedupedActionItems: ChecklistItem[] = [];
+  const seenActionTexts = new Set<string>();
+  for (const item of actionItems) {
+    const normalized = item.text.trim().toLowerCase();
+    if (!seenActionTexts.has(normalized)) {
+      seenActionTexts.add(normalized);
+      dedupedActionItems.push(item);
+    }
+  }
+  const finalActionItems = dedupedActionItems.map((item, idx) => ({
+    ...item,
+    id: `act_${idx + 1}`,
+  }));
+
+  const dedupedLawyerQuestions: ChecklistItem[] = [];
+  const seenQuestionTexts = new Set<string>();
+  for (const item of lawyerQuestions) {
+    const normalized = item.text.trim().toLowerCase();
+    if (!seenQuestionTexts.has(normalized)) {
+      seenQuestionTexts.add(normalized);
+      dedupedLawyerQuestions.push(item);
+    }
+  }
+  const finalLawyerQuestions = dedupedLawyerQuestions.map((item, idx) => ({
+    ...item,
+    id: `q_${idx + 1}`,
+  }));
+
   const caseRef = `NS-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
   return {
@@ -611,8 +707,8 @@ export function generateLegalMemo(
     totalClauses: clauses.length,
     highRiskCount: highRiskClauses.length,
     cautionCount: cautionClauses.length,
-    actionItems,
-    lawyerQuestions,
+    actionItems: finalActionItems,
+    lawyerQuestions: finalLawyerQuestions,
     statutoryCitations: Array.from(statutoryCitationsSet),
   };
 }
