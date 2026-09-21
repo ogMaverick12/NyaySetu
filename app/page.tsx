@@ -14,6 +14,7 @@ import { DocumentAnalysisScreen } from "@/features/document-analysis";
 import { CompareScreen } from "@/features/compare";
 import { ConsultationTranscriptPanel } from "@/features/qa-chat";
 import { ChecklistMemoScreen, lawyerChecklistStore } from "@/features/checklist-export";
+import { FairnessScoreCard, fairnessStore } from "@/features/fairness-score";
 import {
   AccessibilityProvider,
   AccessibilityBar,
@@ -100,6 +101,7 @@ function NyaySetuApp(): JSX.Element {
     setActiveView("intake");
     setFlaggedQAQuestions([]);
     lawyerChecklistStore.clear();
+    fairnessStore.clear();
     // Force IntakeDesk remount to clear its internal document/status state
     setIntakeDeskKey((k) => k + 1);
   };
@@ -297,7 +299,19 @@ function NyaySetuApp(): JSX.Element {
 
               {/* Feature F2: Live Extracted Clauses OR Baseline Demo Cards */}
               {clauses.length > 0 ? (
-                <motion.section variants={slideUp} initial="hidden" animate="visible">
+                <motion.section
+                  variants={slideUp}
+                  initial="hidden"
+                  animate="visible"
+                  className="space-y-6"
+                >
+                  {/* Fairness Score Assessment */}
+                  <FairnessScoreCard
+                    clauses={clauses}
+                    extractionStatus={extractionState.status}
+                    onProceedToCompare={() => setActiveView("compare")}
+                  />
+
                   <ClausePanel
                     clauses={clauses}
                     metadata={metadata}
