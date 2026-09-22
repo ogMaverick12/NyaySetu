@@ -10,6 +10,15 @@ import { validateAndParseClauses } from "@/features/extraction/services/clause-v
 import { QA_SYSTEM_INSTRUCTION, buildQAUserPrompt } from "@/features/qa-chat/services/qa-prompt";
 import { retrieveRelevantContext } from "@/features/qa-chat/services/rag-retriever";
 import { validateAndParseQAResponse } from "@/features/qa-chat/services/qa-validator";
+import {
+  type NegotiationEmailPromptInput,
+  type NegotiationEmailResponse,
+} from "@/features/negotiation-email/types";
+import {
+  NEGOTIATION_EMAIL_SYSTEM_INSTRUCTION,
+  buildNegotiationEmailUserPrompt,
+} from "@/features/negotiation-email/services/negotiation-prompt";
+import { validateAndParseNegotiationEmail } from "@/features/negotiation-email/services/negotiation-validator";
 
 export class GeminiProvider implements LLMProvider {
   readonly providerName = "gemini" as const;
@@ -172,6 +181,85 @@ export class GeminiProvider implements LLMProvider {
 
       return {
         ...qaPayload,
+        metadata: {
+          provider: "gemini",
+          model: this.modelName,
+          latencyMs,
+          fallbackTriggered: false,
+        },
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async generateNegotiationEmail(
+    input: NegotiationEmailPromptInput,
+    options?: ExtractionOptions
+  ): Promise<NegotiationEmailResponse> {
+    if (!this.apiKey) {
+      throw new Error("GEMINI_API_KEY is not configured in environment variables.");
+    }
+
+    const startTime = Date.now();
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:generateContent?key=${this.apiKey}`;
+
+    const systemInstruction = NEGOTIATION_EMAIL_SYSTEM_INSTRUCTION;
+    const userPrompt = buildNegotiationEmailUserPrompt(input);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, options?.timeoutMs || 45000);
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: systemInstruction }],
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: userPrompt }],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.2,
+          },
+        }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`Gemini API returned status ${res.status}: ${errText.slice(0, 300)}`);
+      }
+
+      const responseJson = (await res.json()) as {
+        candidates?: Array<{
+          content?: {
+            parts?: Array<{ text?: string }>;
+          };
+        }>;
+      };
+
+      const rawText = responseJson.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!rawText) {
+        throw new Error("Gemini returned empty or missing content candidate.");
+      }
+
+      const draft = validateAndParseNegotiationEmail(rawText);
+      const latencyMs = Date.now() - startTime;
+
+      return {
+        draft,
         metadata: {
           provider: "gemini",
           model: this.modelName,

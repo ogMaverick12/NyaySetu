@@ -178,11 +178,13 @@ describe("Grounded Document Consultation Q&A (PRD F5)", () => {
         providerName: "gemini",
         extractClauses: vi.fn(),
         answerQuestion: vi.fn().mockRejectedValue(new Error("Gemini 429 quota exhausted")),
+        generateNegotiationEmail: vi.fn(),
       };
 
       const fallbackMock: LLMProvider = {
         providerName: "openrouter",
         extractClauses: vi.fn(),
+        generateNegotiationEmail: vi.fn(),
         answerQuestion: vi.fn().mockResolvedValue({
           isCovered: true,
           answer: "The notice period is 15 days for landlord and 60 days for tenant.",

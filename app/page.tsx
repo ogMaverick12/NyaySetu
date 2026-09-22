@@ -15,6 +15,7 @@ import { CompareScreen } from "@/features/compare";
 import { ConsultationTranscriptPanel } from "@/features/qa-chat";
 import { ChecklistMemoScreen, lawyerChecklistStore } from "@/features/checklist-export";
 import { FairnessScoreCard, fairnessStore } from "@/features/fairness-score";
+import { negotiationEmailStore } from "@/features/negotiation-email";
 import {
   AccessibilityProvider,
   AccessibilityBar,
@@ -102,6 +103,7 @@ function NyaySetuApp(): JSX.Element {
     setFlaggedQAQuestions([]);
     lawyerChecklistStore.clear();
     fairnessStore.clear();
+    negotiationEmailStore.clear();
     // Force IntakeDesk remount to clear its internal document/status state
     setIntakeDeskKey((k) => k + 1);
   };

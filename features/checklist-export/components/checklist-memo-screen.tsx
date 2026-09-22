@@ -7,8 +7,9 @@ import { generateLegalMemo } from "../services/checklist-generator";
 import { exportLegalMemoToPdf } from "../services/pdf-exporter";
 import { LawyerQuestionsCard } from "./lawyer-questions-card";
 import { useLawyerChecklist } from "../store/lawyer-checklist-store";
+import { NegotiationEmailWorkspace } from "@/features/negotiation-email";
 import { Button } from "@/ui/button";
-import { Download, Printer, Copy, Check, CheckCircle2, RefreshCw, Scale } from "lucide-react";
+import { Download, Printer, Copy, Check, CheckCircle2, RefreshCw, Scale, Mail } from "lucide-react";
 
 interface ChecklistMemoScreenProps {
   doc: ParsedDocument;
@@ -49,6 +50,7 @@ export function ChecklistMemoScreen({
 
   const [checkedActions, setCheckedActions] = useState<Record<string, boolean>>({});
   const [copiedMemo, setCopiedMemo] = useState(false);
+  const [showNegotiationEmail, setShowNegotiationEmail] = useState(false);
 
   const toggleAction = (id: string) => {
     setCheckedActions((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -152,8 +154,34 @@ export function ChecklistMemoScreen({
               </>
             )}
           </button>
+
+          <button
+            type="button"
+            disabled={!isExtractionComplete || !memo}
+            onClick={() => setShowNegotiationEmail((prev) => !prev)}
+            className={`inline-flex items-center gap-1.5 rounded border px-3 py-2 font-mono text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              showNegotiationEmail
+                ? "border-[#B08D57] bg-[#FAF3E8] font-bold text-[#684B1E]"
+                : "border-[#E0D7C6] bg-[#F7F3EA] text-[#1B2430] hover:bg-[#EFE8DC]"
+            }`}
+            aria-label="Draft a negotiation email"
+            aria-expanded={showNegotiationEmail}
+          >
+            <Mail className="h-3.5 w-3.5 text-[#B08D57]" />
+            Draft Negotiation Email
+          </button>
         </div>
       </div>
+
+      {/* Negotiation Email Drafting Workspace (Fourth Export Action) */}
+      {showNegotiationEmail && isExtractionComplete && (
+        <NegotiationEmailWorkspace
+          documentFilename={doc.filename}
+          documentType={docType}
+          clauses={clauses}
+          onClose={() => setShowNegotiationEmail(false)}
+        />
+      )}
 
       {/* Gating: If extraction has not finished, display clear inline prompt instead of returning an empty memo */}
       {!isExtractionComplete ? (

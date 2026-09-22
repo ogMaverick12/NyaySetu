@@ -1,6 +1,10 @@
 import { type ParsedDocument } from "@/features/ingestion/types";
 import { type Clause } from "@/features/extraction/types";
 import { type QAResponse } from "@/features/qa-chat/types";
+import {
+  type NegotiationEmailPromptInput,
+  type NegotiationEmailResponse,
+} from "@/features/negotiation-email/types";
 import { type LLMProvider, type ExtractionResponse, type ExtractionOptions } from "./types";
 
 export class FallbackLLMProvider implements LLMProvider {
@@ -73,6 +77,42 @@ export class FallbackLLMProvider implements LLMProvider {
           clauses,
           options
         );
+        return {
+          ...fallbackResponse,
+          metadata: {
+            ...fallbackResponse.metadata,
+            fallbackTriggered: true,
+            fallbackReason: errorMsg,
+          },
+        };
+      } catch (fallbackErr: unknown) {
+        const fallbackMsg =
+          fallbackErr instanceof Error ? fallbackErr.message : "Fallback provider failed";
+
+        throw new Error(
+          `Both LLM providers failed. Primary (${this.primary.providerName}): ${errorMsg}. Fallback (${this.fallback.providerName}): ${fallbackMsg}`
+        );
+      }
+    }
+  }
+
+  async generateNegotiationEmail(
+    input: NegotiationEmailPromptInput,
+    options?: ExtractionOptions
+  ): Promise<NegotiationEmailResponse> {
+    try {
+      const primaryResponse = await this.primary.generateNegotiationEmail(input, options);
+      return primaryResponse;
+    } catch (primaryErr: unknown) {
+      const errorMsg = primaryErr instanceof Error ? primaryErr.message : "Primary provider failed";
+
+      // Security rule from 02-TRD.md: No document content in logs or analytics
+      console.warn(
+        `[LLM Resilience] Primary provider (${this.primary.providerName}) failed: ${errorMsg}. Engaging fallback (${this.fallback.providerName})...`
+      );
+
+      try {
+        const fallbackResponse = await this.fallback.generateNegotiationEmail(input, options);
         return {
           ...fallbackResponse,
           metadata: {

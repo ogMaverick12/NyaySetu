@@ -1,6 +1,10 @@
 import { type ParsedDocument } from "@/features/ingestion/types";
 import { type Clause } from "@/features/extraction/types";
 import { type QAResponse } from "@/features/qa-chat/types";
+import {
+  type NegotiationEmailPromptInput,
+  type NegotiationEmailResponse,
+} from "@/features/negotiation-email/types";
 
 export interface ExtractionOptions {
   maxRetries?: number;
@@ -31,4 +35,8 @@ export interface LLMProvider {
     clauses?: Clause[],
     options?: ExtractionOptions
   ): Promise<QAResponse>;
+  generateNegotiationEmail(
+    input: NegotiationEmailPromptInput,
+    options?: ExtractionOptions
+  ): Promise<NegotiationEmailResponse>;
 }

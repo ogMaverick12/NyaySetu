@@ -150,6 +150,7 @@ describe("Clause Extraction & Resilient LLM Provider (F2)", () => {
           },
         } satisfies ExtractionResponse),
         answerQuestion: vi.fn(),
+        generateNegotiationEmail: vi.fn(),
       };
 
       const openRouterSpy = vi.fn();
@@ -157,6 +158,7 @@ describe("Clause Extraction & Resilient LLM Provider (F2)", () => {
         providerName: "openrouter",
         extractClauses: openRouterSpy,
         answerQuestion: vi.fn(),
+        generateNegotiationEmail: vi.fn(),
       };
 
       const fallbackProvider = new FallbackLLMProvider(mockGemini, mockOpenRouter);
@@ -185,6 +187,7 @@ describe("Clause Extraction & Resilient LLM Provider (F2)", () => {
         providerName: "gemini",
         extractClauses: vi.fn().mockRejectedValue(new Error("Gemini 429: Resource exhausted")),
         answerQuestion: vi.fn(),
+        generateNegotiationEmail: vi.fn(),
       };
 
       const openRouterSpy = vi.fn().mockResolvedValue({
@@ -201,6 +204,7 @@ describe("Clause Extraction & Resilient LLM Provider (F2)", () => {
         providerName: "openrouter",
         extractClauses: openRouterSpy,
         answerQuestion: vi.fn(),
+        generateNegotiationEmail: vi.fn(),
       };
 
       const fallbackProvider = new FallbackLLMProvider(mockGemini, mockOpenRouter);
@@ -218,12 +222,14 @@ describe("Clause Extraction & Resilient LLM Provider (F2)", () => {
         providerName: "gemini",
         extractClauses: vi.fn().mockRejectedValue(new Error("Gemini quota error")),
         answerQuestion: vi.fn(),
+        generateNegotiationEmail: vi.fn(),
       };
 
       const mockOpenRouter: LLMProvider = {
         providerName: "openrouter",
         extractClauses: vi.fn().mockRejectedValue(new Error("OpenRouter timeout")),
         answerQuestion: vi.fn(),
+        generateNegotiationEmail: vi.fn(),
       };
 
       const fallbackProvider = new FallbackLLMProvider(mockGemini, mockOpenRouter);

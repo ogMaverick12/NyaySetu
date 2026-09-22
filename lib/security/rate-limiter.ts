@@ -10,7 +10,7 @@ export interface RateLimitConfig {
   windowMs: number; // Duration in milliseconds
 }
 
-export type RateLimitBucket = "ingest" | "extract" | "qa" | "compare";
+export type RateLimitBucket = "ingest" | "extract" | "qa" | "compare" | "negotiation-email";
 
 export const DEFAULT_RATE_LIMITS: Record<RateLimitBucket, RateLimitConfig> = {
   ingest: {
@@ -28,6 +28,10 @@ export const DEFAULT_RATE_LIMITS: Record<RateLimitBucket, RateLimitConfig> = {
   compare: {
     maxRequests: 15,
     windowMs: 15 * 60 * 1000, // 15 comparisons per 15 minutes
+  },
+  "negotiation-email": {
+    maxRequests: 15,
+    windowMs: 15 * 60 * 1000, // 15 email draft generations per 15 minutes
   },
 };
 
