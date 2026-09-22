@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    // tesseract.js uses WASM workers and spawns Node.js child threads —
+    // it must be required at runtime from node_modules, not bundled by webpack.
+    // (Next.js 14 equivalent of the Next.js 15 stable `serverExternalPackages`)
+    serverComponentsExternalPackages: ["tesseract.js"],
+  },
   async headers() {
     return [
       {

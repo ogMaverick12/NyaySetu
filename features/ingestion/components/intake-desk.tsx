@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useRef, useEffect } from "react";
-import gsap from "gsap";
 import { Button } from "@/ui/button";
 import { Badge } from "@/ui/badge";
 import { useDocumentIngestion } from "../hooks/use-document-ingestion";
@@ -12,6 +11,14 @@ import { FileText, Upload, CheckCircle2, AlertCircle, RefreshCw, Eye, Shield } f
 interface IntakeDeskProps {
   onDocumentParsed?: (doc: ParsedDocument) => void;
   onProceedToAnalysis?: () => void;
+}
+
+// Local structural type — avoids a static module-level import of the gsap namespace.
+interface GsapContext {
+  revert(): void;
+}
+interface GsapTimeline {
+  kill(): void;
 }
 
 export function IntakeDesk({
@@ -25,91 +32,114 @@ export function IntakeDesk({
   const paperRef = useRef<HTMLDivElement>(null);
   const scanLineRef = useRef<HTMLDivElement>(null);
   const deskContainerRef = useRef<HTMLDivElement>(null);
-  const scanTimelineRef = useRef<gsap.core.Timeline | null>(null);
+  // Structural refs — no static gsap type import needed.
+  const scanTimelineRef = useRef<GsapTimeline | null>(null);
+  const gsapCtxRef = useRef<GsapContext | null>(null);
 
   const { prefersReducedMotion, isLowBandwidth } = useAccessibility();
 
-  // GSAP Flagship Animation — strictly scoped to this intake moment, respecting reduced motion and low bandwidth
+  // GSAP Flagship Animation — strictly scoped to this intake moment, respecting reduced motion and low bandwidth.
+  // gsap is dynamically imported so it is absent from the initial page bundle — it only loads after a
+  // file is selected (i.e., when the animation is actually needed).
   useEffect(() => {
-    // If reduced motion is requested or low-bandwidth mode is active, completely bypass animations
-    if (prefersReducedMotion || isLowBandwidth) {
-      if (paperRef.current) {
-        gsap.set(paperRef.current, {
-          y: 0,
-          opacity: 1,
-          rotation: 0,
-          scale: 1,
-        });
-      }
-      if (scanLineRef.current) {
-        gsap.set(scanLineRef.current, { opacity: 0, display: "none" });
-      }
-      if (scanTimelineRef.current) {
-        scanTimelineRef.current.kill();
-        scanTimelineRef.current = null;
-      }
-      return;
-    }
+    let cancelled = false;
 
-    const ctx = gsap.context(() => {
-      // 1. Paper Settle Physics on file drop / selection
-      if (status === "selected" || status === "uploading") {
+    void (async () => {
+      // Dynamic import: gsap (~70 KB) is excluded from the initial client bundle.
+      // It is fetched only when this effect runs for the first time after file selection.
+      const gsap = (await import("gsap")).default;
+
+      // Bail out if the component unmounted or deps changed while the import was in flight.
+      if (cancelled) return;
+
+      // Revert any previous context before creating a new one.
+      gsapCtxRef.current?.revert();
+
+      // If reduced motion or low-bandwidth, set instant static values and exit.
+      if (prefersReducedMotion || isLowBandwidth) {
         if (paperRef.current) {
-          gsap.fromTo(
-            paperRef.current,
-            {
-              y: -35,
-              opacity: 0,
-              rotation: -2.2,
-              scale: 1.04,
-            },
-            {
-              y: 0,
-              opacity: 1,
-              rotation: -0.4,
-              scale: 1,
-              duration: 0.55,
-              ease: "power2.out",
-            }
-          );
+          gsap.set(paperRef.current, { y: 0, opacity: 1, rotation: 0, scale: 1 });
         }
-      }
-
-      // 2. Scan-line sweeping effect during parsing
-      if (status === "scanning") {
         if (scanLineRef.current) {
-          gsap.set(scanLineRef.current, { opacity: 1, display: "block" });
-          scanTimelineRef.current = gsap
-            .timeline({ repeat: -1, yoyo: true })
-            .fromTo(
-              scanLineRef.current,
-              { top: "4%", opacity: 0.95 },
-              { top: "94%", opacity: 0.95, duration: 1.5, ease: "power1.inOut" }
-            );
+          gsap.set(scanLineRef.current, { opacity: 0, display: "none" });
         }
-      } else {
-        // Kill scan-line loop when scanning finishes or idles
         if (scanTimelineRef.current) {
           scanTimelineRef.current.kill();
           scanTimelineRef.current = null;
         }
-        if (scanLineRef.current) {
-          gsap.to(scanLineRef.current, { opacity: 0, duration: 0.25 });
+        return;
+      }
+
+      const ctx = gsap.context(() => {
+        // 1. Paper Settle Physics on file drop / selection
+        if (status === "selected" || status === "uploading") {
+          if (paperRef.current) {
+            gsap.fromTo(
+              paperRef.current,
+              {
+                y: -35,
+                opacity: 0,
+                rotation: -2.2,
+                scale: 1.04,
+              },
+              {
+                y: 0,
+                opacity: 1,
+                rotation: -0.4,
+                scale: 1,
+                duration: 0.55,
+                ease: "power2.out",
+              }
+            );
+          }
         }
-      }
 
-      // 3. Settled Confirmation when ready
-      if (status === "ready" && paperRef.current) {
-        gsap.to(paperRef.current, {
-          rotation: 0,
-          scale: 1,
-          duration: 0.35,
-          ease: "back.out(1.2)",
-        });
-      }
-    }, deskContainerRef);
+        // 2. Scan-line sweeping effect during parsing
+        if (status === "scanning") {
+          if (scanLineRef.current) {
+            gsap.set(scanLineRef.current, { opacity: 1, display: "block" });
+            scanTimelineRef.current = gsap
+              .timeline({ repeat: -1, yoyo: true })
+              .fromTo(
+                scanLineRef.current,
+                { top: "4%", opacity: 0.95 },
+                { top: "94%", opacity: 0.95, duration: 1.5, ease: "power1.inOut" }
+              );
+          }
+        } else {
+          // Kill scan-line loop when scanning finishes or idles
+          if (scanTimelineRef.current) {
+            scanTimelineRef.current.kill();
+            scanTimelineRef.current = null;
+          }
+          if (scanLineRef.current) {
+            gsap.to(scanLineRef.current, { opacity: 0, duration: 0.25 });
+          }
+        }
 
-    return () => ctx.revert();
+        // 3. Settled Confirmation when ready
+        if (status === "ready" && paperRef.current) {
+          gsap.to(paperRef.current, {
+            rotation: 0,
+            scale: 1,
+            duration: 0.35,
+            ease: "back.out(1.2)",
+          });
+        }
+      }, deskContainerRef);
+
+      // Store the context so the synchronous cleanup below can call revert().
+      gsapCtxRef.current = ctx;
+    })();
+
+    // Synchronous cleanup: runs immediately on unmount or dep change.
+    // gsapCtxRef.current holds the context if the async import already resolved;
+    // if not yet resolved, `cancelled = true` prevents it from ever being stored.
+    return () => {
+      cancelled = true;
+      gsapCtxRef.current?.revert();
+      gsapCtxRef.current = null;
+    };
   }, [status, prefersReducedMotion, isLowBandwidth]);
 
   // Forward parsed document to parent callback

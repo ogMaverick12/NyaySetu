@@ -1,5 +1,4 @@
 import { extractText } from "unpdf";
-import { createWorker } from "tesseract.js";
 import { type RawPageInput } from "./normalizer";
 
 export interface ExtractionResult {
@@ -42,6 +41,9 @@ export async function extractTextFromPdf(buffer: Buffer): Promise<ExtractionResu
  * Extracts text from an image (JPG/PNG) via local Tesseract OCR.
  */
 export async function extractTextFromImage(buffer: Buffer): Promise<ExtractionResult> {
+  // Dynamic import: tesseract.js (~5 MB WASM) is only loaded when an image
+  // file is actually uploaded — never on PDF paths or initial server cold start.
+  const { createWorker } = await import("tesseract.js");
   const worker = await createWorker("eng");
   try {
     const ret = await worker.recognize(buffer);
