@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { type Clause, type ClauseRiskFilter } from "../types";
 import { type ExtractionResultMetadata } from "@/lib/llm/types";
 import { ClauseCard } from "./clause-card";
@@ -148,22 +148,22 @@ export function ClausePanel({
           <p className="font-serif text-sm">No clauses found matching this filter.</p>
         </div>
       ) : (
-        <motion.div
+        <m.div
           variants={clauseContainer}
           initial="hidden"
           animate="visible"
           className="grid grid-cols-1 gap-5 md:grid-cols-2"
         >
           {visibleClauses.map((clause) => (
-            <motion.div key={clause.id} variants={clauseCardReveal}>
+            <m.div key={clause.id} variants={clauseCardReveal}>
               <ClauseCard
                 clause={clause}
                 isFlaggedForLawyer={flaggedForLawyer.has(clause.id)}
                 onToggleFlagForLawyer={() => onToggleFlag(clause.id)}
               />
-            </motion.div>
+            </m.div>
           ))}
-        </motion.div>
+        </m.div>
       )}
 
       {/* Next Step Transition */}

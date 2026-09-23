@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { m, useReducedMotion } from "framer-motion";
 import { tokens } from "@/tokens";
 import { standardTransition } from "@/motion-variants";
 import { type FairnessMeterProps, type FairnessBand } from "../types";
@@ -61,7 +61,7 @@ export function FairnessMeter({
         className="relative h-4 w-full overflow-hidden rounded-full border border-[#E0D7C6] bg-[#EFE8DC]"
       >
         {/* Fill Bar */}
-        <motion.div
+        <m.div
           className="h-full rounded-full transition-colors duration-200"
           style={{
             backgroundColor: bandInfo.bar,

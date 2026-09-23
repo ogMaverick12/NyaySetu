@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { type QATranscriptItem } from "../hooks/use-qa-consultation";
 import { ReferenceChip } from "./reference-chip";
 import { ShieldAlert, CheckCircle2, BookmarkPlus, Check, HelpCircle } from "lucide-react";
@@ -30,7 +30,7 @@ export function TranscriptEntry({
   };
 
   return (
-    <motion.article
+    <m.article
       variants={slideUp}
       initial="hidden"
       animate="visible"
@@ -135,6 +135,6 @@ export function TranscriptEntry({
           </div>
         </div>
       )}
-    </motion.article>
+    </m.article>
   );
 }

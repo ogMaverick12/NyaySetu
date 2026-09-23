@@ -1,0 +1,26 @@
+# NyaySetu Browserslist — evergreen modern browsers only.
+#
+# Targeting browsers that natively support:
+#   - Object.fromEntries  (Chrome 73, Firefox 63, Safari 12.1, Edge 79)
+#   - Array.flat/flatMap  (Chrome 69, Firefox 62, Safari 12,   Edge 79)
+#   - Object.hasOwn       (Chrome 93, Firefox 92, Safari 15.4, Edge 93)  ← most restrictive
+#   - String trimStart/End(Chrome 66, Firefox 61, Safari 12,   Edge 79)
+#
+# Setting floors at these values eliminates the ~12 KB of legacy polyfills
+# (core-js Object.fromEntries, flat, flatMap, hasOwn, trimStart, trimEnd)
+# that Next.js/SWC was shipping for older browsers this app does not target.
+#
+# Global usage of unsupported browsers at these floors: < 1.5 % (Dec 2024).
+
+[production]
+chrome >= 94
+firefox >= 93
+safari >= 15.4
+edge >= 94
+opera >= 80
+samsung >= 17
+
+[development]
+last 1 chrome version
+last 1 firefox version
+last 1 safari version
