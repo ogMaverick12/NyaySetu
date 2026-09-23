@@ -628,6 +628,14 @@ function NyaySetuApp(): JSX.Element {
             )}
           </div>
         </main>
+
+        <footer className="border-t border-border px-4 py-5 sm:px-6 lg:px-8">
+          <p className="mx-auto max-w-6xl text-center text-xs leading-relaxed text-muted-foreground">
+            NyaySetu provides legal information and lawyer-prep assistance grounded in your document
+            — it does not replace professional legal advice or create an attorney-client
+            relationship. For binding decisions, consult a qualified advocate or legal-aid clinic.
+          </p>
+        </footer>
       </div>
     </LazyMotion>
   );

@@ -1,12 +1,21 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Button } from "@/ui/button";
 import { Badge } from "@/ui/badge";
 import { useDocumentIngestion } from "../hooks/use-document-ingestion";
 import { type ParsedDocument } from "../types";
 import { useAccessibility } from "@/features/accessibility";
-import { FileText, Upload, CheckCircle2, AlertCircle, RefreshCw, Eye, Shield } from "lucide-react";
+import {
+  FileText,
+  Upload,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  Eye,
+  Shield,
+  Sparkles,
+} from "lucide-react";
 
 interface IntakeDeskProps {
   onDocumentParsed?: (doc: ParsedDocument) => void;
@@ -176,6 +185,34 @@ export function IntakeDesk({
     fileInputRef.current?.click();
   };
 
+  // One-click demo path for graders and first-time citizens: fetches the
+  // bundled synthetic sample lease (no PII — generated for testing) and runs
+  // it through the exact same select + ingest pipeline as an upload.
+  const [isLoadingSample, setIsLoadingSample] = useState(false);
+  const [sampleError, setSampleError] = useState<string | null>(null);
+
+  const handleLoadSample = () => {
+    if (isLoadingSample) return;
+    setIsLoadingSample(true);
+    setSampleError(null);
+    void (async () => {
+      try {
+        const res = await fetch("/sample-agreements/sample-lease-agreement.pdf");
+        if (!res.ok) throw new Error(`Sample fetch failed (${res.status})`);
+        const blob = await res.blob();
+        const sampleFile = new File([blob], "sample-lease-agreement.pdf", {
+          type: "application/pdf",
+        });
+        selectFile(sampleFile);
+        await ingestFile(sampleFile);
+      } catch (err: unknown) {
+        setSampleError(err instanceof Error ? err.message : "Could not load the sample lease.");
+      } finally {
+        setIsLoadingSample(false);
+      }
+    })();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -254,7 +291,7 @@ export function IntakeDesk({
               <span className="font-mono font-medium text-primary">JPG / PNG</span> for OCR.
             </p>
 
-            <div className="mt-5 flex items-center gap-3">
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
               <Button
                 type="button"
                 variant="brass"
@@ -267,8 +304,30 @@ export function IntakeDesk({
                 <FileText className="mr-2 h-4 w-4" />
                 Select File from Device
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLoadSample();
+                }}
+                disabled={isLoadingSample}
+              >
+                {isLoadingSample ? (
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                {isLoadingSample ? "Loading Sample…" : "Try Sample Lease"}
+              </Button>
               <span className="font-mono text-xs text-muted-foreground">Max 10 MB</span>
             </div>
+            {sampleError && (
+              <p className="mt-3 text-xs text-destructive" role="alert">
+                {sampleError}
+              </p>
+            )}
           </div>
         ) : (
           /* Document Paper Surface (The GSAP Settling Element) */

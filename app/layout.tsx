@@ -10,7 +10,9 @@ const fraunces = Fraunces({
 
 const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  // 300 (Light) removed: no font-light usage in the codebase — every skipped
+  // weight is a render-blocking font file on mobile Lighthouse.
+  weight: ["400", "500", "600", "700"],
   variable: "--font-ibm-plex-sans",
   display: "swap",
 });

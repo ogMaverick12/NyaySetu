@@ -69,7 +69,7 @@ export class OpenRouterProvider implements LLMProvider {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.apiKey}`,
-          "HTTP-Referer": "https://nyaysetu.local",
+          "HTTP-Referer": "https://nyay-setu-zeta.vercel.app",
           "X-Title": "NyaySetu Legal Assistant",
         },
         body: JSON.stringify({
@@ -153,7 +153,7 @@ export class OpenRouterProvider implements LLMProvider {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.apiKey}`,
-          "HTTP-Referer": "https://nyaysetu.local",
+          "HTTP-Referer": "https://nyay-setu-zeta.vercel.app",
           "X-Title": "NyaySetu Legal Assistant",
         },
         body: JSON.stringify({
@@ -234,7 +234,7 @@ export class OpenRouterProvider implements LLMProvider {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://nyaysetu.vercel.app",
+          "HTTP-Referer": "https://nyay-setu-zeta.vercel.app",
           "X-Title": "NyaySetu Legal Assistant",
         },
         body: JSON.stringify({
