@@ -32,6 +32,7 @@ module.exports = {
     '*.config.mjs',
     '*.config.ts',
     '*.config.js',
+    'lib/evergreen-polyfill-stub.js',
     '.eslintrc.cjs',
     '.husky/',
   ],
