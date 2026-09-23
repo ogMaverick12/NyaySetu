@@ -6,6 +6,7 @@ import {
   type NegotiationEmailResponse,
 } from "@/features/negotiation-email/types";
 import { type LLMProvider, type ExtractionResponse, type ExtractionOptions } from "./types";
+import { securityLogger } from "@/lib/security";
 
 export class FallbackLLMProvider implements LLMProvider {
   readonly providerName = "resilient-fallback" as const;
@@ -28,9 +29,12 @@ export class FallbackLLMProvider implements LLMProvider {
       const errorMsg = primaryErr instanceof Error ? primaryErr.message : "Primary provider failed";
 
       // Security rule from 02-TRD.md: No document content in logs or analytics
-      console.warn(
-        `[LLM Resilience] Primary provider (${this.primary.providerName}) failed: ${errorMsg}. Engaging fallback (${this.fallback.providerName})...`
-      );
+      securityLogger.warn("LLM_PRIMARY_PROVIDER_FAILED", {
+        primary: this.primary.providerName,
+        fallbackProvider: this.fallback.providerName,
+        reason: errorMsg,
+        operation: "extractClauses",
+      });
 
       try {
         const fallbackResponse = await this.fallback.extractClauses(doc, options);
@@ -66,9 +70,12 @@ export class FallbackLLMProvider implements LLMProvider {
       const errorMsg = primaryErr instanceof Error ? primaryErr.message : "Primary provider failed";
 
       // Security rule from 02-TRD.md: No document content in logs or analytics
-      console.warn(
-        `[LLM Resilience] Primary provider (${this.primary.providerName}) failed: ${errorMsg}. Engaging fallback (${this.fallback.providerName})...`
-      );
+      securityLogger.warn("LLM_PRIMARY_PROVIDER_FAILED", {
+        primary: this.primary.providerName,
+        fallbackProvider: this.fallback.providerName,
+        reason: errorMsg,
+        operation: "answerQuestion",
+      });
 
       try {
         const fallbackResponse = await this.fallback.answerQuestion(
@@ -107,9 +114,12 @@ export class FallbackLLMProvider implements LLMProvider {
       const errorMsg = primaryErr instanceof Error ? primaryErr.message : "Primary provider failed";
 
       // Security rule from 02-TRD.md: No document content in logs or analytics
-      console.warn(
-        `[LLM Resilience] Primary provider (${this.primary.providerName}) failed: ${errorMsg}. Engaging fallback (${this.fallback.providerName})...`
-      );
+      securityLogger.warn("LLM_PRIMARY_PROVIDER_FAILED", {
+        primary: this.primary.providerName,
+        fallbackProvider: this.fallback.providerName,
+        reason: errorMsg,
+        operation: "generateNegotiationEmail",
+      });
 
       try {
         const fallbackResponse = await this.fallback.generateNegotiationEmail(input, options);

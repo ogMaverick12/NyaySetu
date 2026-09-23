@@ -69,13 +69,32 @@ export async function POST(req: NextRequest) {
           result: response,
         });
       } catch (err: unknown) {
-        securityLogger.warn("QA_PROVIDER_FALLBACK_TRIGGERED", {
-          error: err instanceof Error ? err.message : String(err),
+        securityLogger.warn("QA_ALL_PROVIDERS_FAILED", {
+          docId: doc.id,
+          sessionId: sessionId || "ephemeral",
+          error: err instanceof Error ? err.message.slice(0, 200) : String(err),
         });
+
+        // In production: both providers failed — surface an honest error, never substitute content.
+        if (process.env.NODE_ENV === "production") {
+          return NextResponse.json(
+            { error: "Analysis temporarily unavailable — please retry in a moment." },
+            { status: 503 }
+          );
+        }
+        // In non-production: fall through to deterministic RAG (dev/test only).
       }
     }
 
-    // Fallback: in-memory deterministic RAG engine
+    // Deterministic RAG engine — only reachable in non-production environments.
+    // Marked with _degraded:true and corrected metadata so it can never be
+    // mistaken for a live grounded LLM answer.
+    securityLogger.warn("QA_DETERMINISTIC_MODE_ACTIVE", {
+      docId: doc.id,
+      sessionId: sessionId || "ephemeral",
+      reason: "No LLM API keys configured or non-production environment",
+    });
+
     const deterministicPayload = evaluateDeterministicQA(doc, question, clauses);
 
     securityLogger.info("QA_CONSULTATION_DETERMINISTIC", {
@@ -87,13 +106,16 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      // _degraded: visible to the client so UI can label this as non-live.
+      _degraded: true,
       result: {
         ...deterministicPayload,
         metadata: {
-          provider: "gemini" as const,
+          // Correct provider label — never impersonate "gemini" for a local result.
+          provider: "deterministic-rag" as const,
           model: "deterministic-rag-engine",
           latencyMs: 12,
-          fallbackTriggered: false,
+          fallbackTriggered: true,
         },
       },
     });

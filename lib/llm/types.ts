@@ -11,7 +11,7 @@ export interface ExtractionOptions {
   timeoutMs?: number;
 }
 
-export type LLMProviderName = "gemini" | "openrouter";
+export type LLMProviderName = "gemini" | "openrouter" | "deterministic-rag";
 
 export interface ExtractionResultMetadata {
   provider: LLMProviderName;
