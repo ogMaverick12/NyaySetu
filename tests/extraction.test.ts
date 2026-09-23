@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
+import { NextRequest } from "next/server";
 import { validateAndParseClauses, ClauseSchema, type Clause } from "@/features/extraction";
 import { type LLMProvider, type ExtractionResponse, FallbackLLMProvider } from "@/lib/llm";
 import { type ParsedDocument } from "@/features/ingestion/types";
+import { sessionStore } from "@/lib/security/session-store";
 
 describe("Clause Extraction & Resilient LLM Provider (F2)", () => {
   const sampleParsedDoc: ParsedDocument = {
@@ -237,6 +239,79 @@ describe("Clause Extraction & Resilient LLM Provider (F2)", () => {
       await expect(fallbackProvider.extractClauses(sampleParsedDoc)).rejects.toThrow(
         /Both LLM providers failed/
       );
+    });
+  });
+
+  describe("Extract API Route — honest 503 and session-clause reuse", () => {
+    const cachedClauses: Clause[] = [
+      {
+        id: "cl_cached_1",
+        page: 1,
+        sourceText: "Tenant shall pay INR 32,000 monthly rent.",
+        type: "rent_payment",
+        plainSummary: "Rent is due monthly at INR 32,000.",
+        riskLevel: "info",
+        rationale: "Customary term.",
+      },
+    ];
+
+    it("returns 503 (not 500) when no LLM keys are configured", async () => {
+      const origGemini = process.env.GEMINI_API_KEY;
+      const origOpenRouter = process.env.OPENROUTER_API_KEY;
+      delete process.env.GEMINI_API_KEY;
+      delete process.env.OPENROUTER_API_KEY;
+      try {
+        const { POST } = await import("@/app/api/extract/route");
+        const req = new NextRequest("http://localhost/api/extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ document: sampleParsedDoc }),
+        });
+        const res = await POST(req);
+        expect(res.status).toBe(503);
+        const data = (await res.json()) as { error?: string };
+        expect(data.error || "").toMatch(/not configured/i);
+      } finally {
+        if (origGemini !== undefined) process.env.GEMINI_API_KEY = origGemini;
+        if (origOpenRouter !== undefined) process.env.OPENROUTER_API_KEY = origOpenRouter;
+      }
+    });
+
+    it("returns cached session clauses without spending LLM tokens", async () => {
+      const session = sessionStore.getOrCreateSession("test-extract-cache-session");
+      sessionStore.updateSession(session.id, {
+        document: sampleParsedDoc,
+        clauses: cachedClauses,
+        metadata: {
+          provider: "gemini",
+          model: "gemini-2.5-flash",
+          latencyMs: 1,
+          fallbackTriggered: false,
+        },
+      });
+      try {
+        const { POST } = await import("@/app/api/extract/route");
+        const req = new NextRequest("http://localhost/api/extract", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-session-id": session.id,
+          },
+          body: JSON.stringify({ document: sampleParsedDoc }),
+        });
+        const res = await POST(req);
+        expect(res.status).toBe(200);
+        const data = (await res.json()) as {
+          success?: boolean;
+          cached?: boolean;
+          clauses?: Clause[];
+        };
+        expect(data.success).toBe(true);
+        expect(data.cached).toBe(true);
+        expect(data.clauses).toEqual(cachedClauses);
+      } finally {
+        sessionStore.deleteSession(session.id);
+      }
     });
   });
 });

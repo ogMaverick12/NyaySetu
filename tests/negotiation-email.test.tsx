@@ -279,6 +279,19 @@ describe("Negotiation Email Feature Suite (02-TRD.md & UIUX Brief)", () => {
       negotiationEmailStore.clear();
       expect(negotiationEmailStore.getDraft("doc-123.pdf")).toBeNull();
     });
+
+    it("builds content-bound cache keys so same-name different-content misses", async () => {
+      const { buildDraftCacheKey } =
+        await import("@/features/negotiation-email/hooks/use-negotiation-email-draft");
+      const keyA = buildDraftCacheKey("lease.pdf", sampleClauses, []);
+      const keyB = buildDraftCacheKey(
+        "lease.pdf",
+        sampleClauses.map((c) => (c.id === "cl_high_1" ? { ...c, riskLevel: "info" as const } : c)),
+        []
+      );
+      expect(keyA).not.toBe(keyB);
+      expect(buildDraftCacheKey("lease.pdf", sampleClauses, [])).toBe(keyA);
+    });
   });
 
   describe("5. React Workspace UI & Accessibility", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { type ParsedDocument } from "@/features/ingestion/types";
 import { type Clause, type ClauseRiskFilter, type ClauseExtractionState } from "../types";
 import { type ExtractionResultMetadata } from "@/lib/llm/types";
@@ -29,8 +29,21 @@ export function useClauseExtraction(): UseClauseExtractionReturn {
   });
   const [activeFilter, setActiveFilter] = useState<ClauseRiskFilter>("all");
   const [flaggedForLawyer, setFlaggedForLawyer] = useState<Set<string>>(new Set());
+  // Guards against double billing: concurrent duplicate submissions and
+  // re-extraction of a document whose clauses already succeeded.
+  const inFlightDocIdRef = useRef<string | null>(null);
+  const lastSuccessRef = useRef<{ docId: string; clauses: Clause[] } | null>(null);
 
   const extractClauses = useCallback(async (doc: ParsedDocument): Promise<Clause[] | null> => {
+    // Same document, already extracted — return cached clauses, zero new calls.
+    if (lastSuccessRef.current?.docId === doc.id) {
+      return lastSuccessRef.current.clauses;
+    }
+    // Identical extraction already in flight — don't fire a second LLM call.
+    if (inFlightDocIdRef.current === doc.id) {
+      return null;
+    }
+    inFlightDocIdRef.current = doc.id;
     setState({
       status: "extracting",
       clauses: [],
@@ -75,6 +88,7 @@ export function useClauseExtraction(): UseClauseExtractionReturn {
         error: null,
       });
 
+      lastSuccessRef.current = { docId: doc.id, clauses: data.clauses };
       return data.clauses;
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "Clause extraction failed";
@@ -84,6 +98,8 @@ export function useClauseExtraction(): UseClauseExtractionReturn {
         error: errorMsg,
       });
       return null;
+    } finally {
+      inFlightDocIdRef.current = null;
     }
   }, []);
 
@@ -109,6 +125,8 @@ export function useClauseExtraction(): UseClauseExtractionReturn {
     });
     setActiveFilter("all");
     setFlaggedForLawyer(new Set());
+    inFlightDocIdRef.current = null;
+    lastSuccessRef.current = null;
   }, []);
 
   const filteredClauses = useMemo(() => {

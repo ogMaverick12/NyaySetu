@@ -53,24 +53,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (mode === "doc_vs_baseline") {
       const baselineKey = body.baselineKey || "residential_tenancy";
 
-      if (process.env.GEMINI_API_KEY || process.env.OPENROUTER_API_KEY) {
-        try {
-          const provider = getDefaultLLMProvider();
-          // extractClauses is the closest single-doc LLM operation; the baseline
-          // comparison is deterministic, so we verify the provider is live before
-          // returning a deterministic result labeled as live.
-          await provider.extractClauses(targetParsed.data, { timeoutMs: 5000 });
-        } catch (err: unknown) {
-          securityLogger.warn("COMPARE_LLM_FAILED_USING_DETERMINISTIC", {
-            mode: "doc_vs_baseline",
-            docId: targetParsed.data.id,
-            reason: err instanceof Error ? err.message.slice(0, 200) : String(err),
-          });
-
-          if (IS_PRODUCTION) return unavailableError();
-          // Non-production: fall through to deterministic with _degraded flag.
-        }
-      }
+      // The baseline comparison is fully deterministic (sourced statutory
+      // templates, zero LLM tokens). Liveness is derived from key presence —
+      // no probe LLM call is spent just to label the result.
+      const isLive = Boolean(process.env.GEMINI_API_KEY || process.env.OPENROUTER_API_KEY);
 
       const baselineComp = buildDeterministicBaselineComparison(
         targetParsed.data,
@@ -78,10 +64,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         extractedClauses
       );
 
-      const isLive = Boolean(process.env.GEMINI_API_KEY || process.env.OPENROUTER_API_KEY);
       return NextResponse.json({
         success: true,
-        // _degraded is only set when no live LLM confirmed reachability.
+        // _degraded is only set when no live LLM is configured.
         ...(!isLive && { _degraded: true }),
         result: baselineComp,
       });

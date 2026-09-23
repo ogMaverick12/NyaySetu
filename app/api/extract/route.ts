@@ -35,13 +35,47 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    const doc = parsedDocResult.data;
+
+    // Session reuse: the same document already extracted in this session costs
+    // zero new LLM tokens — return the cached clauses instead of re-billing.
+    if (sessionId) {
+      const session = sessionStore.getSession(sessionId);
+      if (session?.document?.id === doc.id && session.clauses.length > 0) {
+        securityLogger.info("CLAUSE_EXTRACTION_CACHE_HIT", {
+          docId: doc.id,
+          clauseCount: session.clauses.length,
+          sessionId,
+        });
+        return NextResponse.json({
+          success: true,
+          cached: true,
+          clauses: session.clauses,
+          metadata: session.metadata,
+        });
+      }
+    }
+
+    // Fail honest and cheap: without any LLM key configured, extraction cannot
+    // run — return 503 (not a 500 pipeline error) so clients can message it.
+    if (!process.env.GEMINI_API_KEY && !process.env.OPENROUTER_API_KEY) {
+      securityLogger.warn("EXTRACTION_NO_LLM_KEYS", { docId: doc.id });
+      return NextResponse.json(
+        {
+          error:
+            "Language services are not configured — clause extraction needs at least one LLM API key. Document intake, checklist, and Fairness Score remain available.",
+        },
+        { status: 503 }
+      );
+    }
+
     const provider = getDefaultLLMProvider();
-    const result = await provider.extractClauses(parsedDocResult.data);
+    const result = await provider.extractClauses(doc);
 
     // 2. Update session-scoped storage
     if (sessionId) {
       sessionStore.updateSession(sessionId, {
-        document: parsedDocResult.data,
+        document: doc,
         clauses: result.clauses,
         metadata: result.metadata,
       });
@@ -49,7 +83,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // 3. Sanitized Audit Log (Zero document text in logs)
     securityLogger.info("CLAUSE_EXTRACTION_SUCCESS", {
-      docId: parsedDocResult.data.id,
+      docId: doc.id,
       clauseCount: result.clauses.length,
       providerServed: result.metadata.provider,
       fallbackTriggered: result.metadata.fallbackTriggered,

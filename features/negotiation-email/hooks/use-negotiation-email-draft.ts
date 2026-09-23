@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
+import { useState, useEffect, useCallback, useRef, useSyncExternalStore, useMemo } from "react";
 import { type Clause, type DocumentType } from "@/features/extraction";
 import { type ComparisonDifference } from "@/features/compare/types";
 import { NegotiationEmailDraftSchema, type NegotiationEmailDraft } from "../types";
@@ -16,6 +16,30 @@ export interface UseNegotiationEmailDraftOptions {
 }
 
 export type GenerationStatus = "idle" | "generating" | "streaming" | "success" | "error";
+
+/**
+ * Content-bound cache key: filename alone goes stale when a different document
+ * is uploaded under the same name, so the clause/diff fingerprint is mixed in.
+ */
+function hashString(input: string): string {
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) + hash + input.charCodeAt(i)) | 0;
+  }
+  return (hash >>> 0).toString(36);
+}
+
+export function buildDraftCacheKey(
+  documentFilename: string,
+  clauses: Clause[],
+  comparisonDifferences: ComparisonDifference[] = []
+): string {
+  const fingerprint = JSON.stringify({
+    clauses: clauses.map((c) => [c.id, c.type, c.riskLevel]),
+    diffs: comparisonDifferences.map((d) => [d.id, d.impactOnUser]),
+  });
+  return `${documentFilename}::${hashString(fingerprint)}`;
+}
 
 export interface UseNegotiationEmailDraftReturn {
   draft: NegotiationEmailDraft | null;
@@ -50,10 +74,16 @@ export function useNegotiationEmailDraft({
   const isGeneratingRef = useRef<boolean>(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Content-bound cache key — same filename with different content misses.
+  const cacheKey = useMemo(
+    () => buildDraftCacheKey(documentFilename, clauses, comparisonDifferences),
+    [documentFilename, clauses, comparisonDifferences]
+  );
+
   // Subscribe to external store changes
   const cachedDraft = useSyncExternalStore(
     negotiationEmailStore.subscribe,
-    () => negotiationEmailStore.getDraft(documentFilename),
+    () => negotiationEmailStore.getDraft(cacheKey),
     () => null
   );
 
@@ -71,30 +101,30 @@ export function useNegotiationEmailDraft({
     (newSubject: string) => {
       setSubject(newSubject);
       // Sync with store if draft is already established
-      const existing = negotiationEmailStore.getDraft(documentFilename);
+      const existing = negotiationEmailStore.getDraft(cacheKey);
       if (existing) {
-        negotiationEmailStore.setDraft(documentFilename, {
+        negotiationEmailStore.setDraft(cacheKey, {
           ...existing,
           subject: newSubject,
         });
       }
     },
-    [documentFilename]
+    [cacheKey]
   );
 
   const updateBody = useCallback(
     (newBody: string) => {
       setBody(newBody);
       // Sync with store if draft is already established
-      const existing = negotiationEmailStore.getDraft(documentFilename);
+      const existing = negotiationEmailStore.getDraft(cacheKey);
       if (existing) {
-        negotiationEmailStore.setDraft(documentFilename, {
+        negotiationEmailStore.setDraft(cacheKey, {
           ...existing,
           body: newBody,
         });
       }
     },
-    [documentFilename]
+    [cacheKey]
   );
 
   const generateDraft = useCallback(
@@ -106,7 +136,7 @@ export function useNegotiationEmailDraft({
 
       // 2. If cached draft exists and not explicitly regenerating, use cache
       if (!forceRegenerate) {
-        const stored = negotiationEmailStore.getDraft(documentFilename);
+        const stored = negotiationEmailStore.getDraft(cacheKey);
         if (stored) {
           setSubject(stored.subject);
           setBody(stored.body);
@@ -204,7 +234,7 @@ export function useNegotiationEmailDraft({
             setSubject(finalDraft.subject);
             setBody(finalDraft.body);
             setCitedClauseIds(finalDraft.citedClauseIds);
-            negotiationEmailStore.setDraft(documentFilename, finalDraft);
+            negotiationEmailStore.setDraft(cacheKey, finalDraft);
             setStatus("success");
           } else if (accumulatedBody) {
             const fallbackDraft: NegotiationEmailDraft = {
@@ -213,7 +243,7 @@ export function useNegotiationEmailDraft({
               citedClauseIds,
             };
             setBody(fallbackDraft.body);
-            negotiationEmailStore.setDraft(documentFilename, fallbackDraft);
+            negotiationEmailStore.setDraft(cacheKey, fallbackDraft);
             setStatus("success");
           } else {
             throw new Error("Stream closed without producing complete draft content.");
@@ -226,7 +256,7 @@ export function useNegotiationEmailDraft({
           setSubject(validated.subject);
           setBody(validated.body);
           setCitedClauseIds(validated.citedClauseIds);
-          negotiationEmailStore.setDraft(documentFilename, validated);
+          negotiationEmailStore.setDraft(cacheKey, validated);
           setStatus("success");
         }
       } catch (err: unknown) {
@@ -242,7 +272,15 @@ export function useNegotiationEmailDraft({
         setStreamingBody("");
       }
     },
-    [documentFilename, documentType, clauses, comparisonDifferences, subject, citedClauseIds]
+    [
+      cacheKey,
+      documentType,
+      clauses,
+      comparisonDifferences,
+      subject,
+      citedClauseIds,
+      documentFilename,
+    ]
   );
 
   // Auto-generate on initial load if requested and no cached draft exists
