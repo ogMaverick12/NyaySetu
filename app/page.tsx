@@ -14,8 +14,41 @@ import { ShieldAlert, ArrowRight, CheckCircle2, AlertTriangle } from "lucide-rea
 import { NyaySetuLogo } from "@/components/nyaysetu-logo";
 
 import dynamic from "next/dynamic";
-import { IntakeDesk, type ParsedDocument } from "@/features/ingestion";
-import { ClausePanel, useClauseExtraction } from "@/features/extraction";
+// Direct deep imports only — feature barrel index files re-export server-only
+// and below-fold modules (zod schemas, memo screen, workspace components) that
+// would otherwise ride into the initial first-paint bundle. Every binding below
+// resolves to the smallest module that provides it.
+import { IntakeDesk } from "@/features/ingestion/components/intake-desk";
+import { type ParsedDocument } from "@/features/ingestion/types";
+import { useClauseExtraction } from "@/features/extraction/hooks/use-clause-extraction";
+// ClausePanel + FairnessScoreCard render only after extraction succeeds, so
+// they stream in on demand like the tab views — the intake first paint keeps
+// hero + desk + static demo cards only.
+const ClausePanel = dynamic(
+  () => import("@/features/extraction/components/clause-panel").then((mod) => mod.ClausePanel),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
+        Loading clause analysis…
+      </div>
+    ),
+  }
+);
+const FairnessScoreCard = dynamic(
+  () =>
+    import("@/features/fairness-score/components/fairness-score-card").then(
+      (mod) => mod.FairnessScoreCard
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
+        Loading fairness score…
+      </div>
+    ),
+  }
+);
 // Below-fold workflow views are code-split so they never enter the initial
 // first-paint bundle (hero + intake desk only). Each loads on tab activation.
 // jspdf (via ChecklistMemoScreen) and compare/QA stacks therefore stay out of
@@ -61,9 +94,9 @@ const ChecklistMemoScreen = dynamic(
     ),
   }
 );
-import { lawyerChecklistStore } from "@/features/checklist-export";
-import { FairnessScoreCard, fairnessStore } from "@/features/fairness-score";
-import { negotiationEmailStore } from "@/features/negotiation-email";
+import { lawyerChecklistStore } from "@/features/checklist-export/store/lawyer-checklist-store";
+import { fairnessStore } from "@/features/fairness-score/store/fairness-store";
+import { negotiationEmailStore } from "@/features/negotiation-email/store/negotiation-email-store";
 import {
   AccessibilityProvider,
   AccessibilityBar,

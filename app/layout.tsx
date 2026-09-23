@@ -22,6 +22,10 @@ const ibmPlexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600"],
   variable: "--font-ibm-plex-mono",
   display: "swap",
+  // Mono sets only small labels/badges — never the hero LCP text (serif/sans).
+  // Skipping preload removes 3+ font files from the critical request chain;
+  // swap keeps labels painting instantly with fallback glyphs.
+  preload: false,
 });
 
 export const metadata: Metadata = {
