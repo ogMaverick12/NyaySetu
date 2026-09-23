@@ -135,7 +135,7 @@ export function ConsultationTranscriptPanel({
         <div className="rounded-lg border-2 border-[#B08D57]/40 bg-[#FBF9F4] p-6 shadow-sm">
           {extractionStatus === "extracting" ? (
             <div className="flex flex-col items-center space-y-3 text-center">
-              <RefreshCw className="h-8 w-8 animate-spin text-[#B08D57]" />
+              <RefreshCw className="h-8 w-8 animate-spin text-[#684B1E]" />
               <h3 className="font-serif text-base font-semibold text-[#1B2430]">
                 Indexing Document Clauses for Consultation...
               </h3>
@@ -148,7 +148,7 @@ export function ConsultationTranscriptPanel({
             </div>
           ) : (
             <div className="flex flex-col items-center space-y-3 text-center">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#B08D57]/10 text-[#8C6D3B]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#B08D57]/10 text-[#684B1E]">
                 <Scale className="h-5 w-5" />
               </div>
               <div className="space-y-1">

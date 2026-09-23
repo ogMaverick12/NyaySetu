@@ -241,7 +241,7 @@ export function IntakeDesk({
             className="group relative flex min-h-[260px] cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-[#B08D57]/40 bg-card/60 p-8 text-center transition-all hover:border-[#B08D57] hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary/80 text-primary shadow-sm transition-transform group-hover:scale-105">
-              <Upload className="h-6 w-6 text-[#B08D57]" />
+              <Upload className="h-6 w-6 text-[#684B1E]" />
             </div>
 
             <h3 className="mt-4 font-serif text-lg font-semibold text-primary">
@@ -311,7 +311,7 @@ export function IntakeDesk({
                     Try Again
                   </Button>
                 ) : (
-                  <div className="flex items-center space-x-2 font-mono text-xs text-[#B08D57]">
+                  <div className="flex items-center space-x-2 font-mono text-xs text-[#684B1E]">
                     <RefreshCw className="h-3.5 w-3.5 animate-spin" />
                     <span>Analyzing...</span>
                   </div>
@@ -336,7 +336,7 @@ export function IntakeDesk({
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
                   <div
-                    className="h-full bg-[#B08D57] transition-all duration-300 ease-out"
+                    className="h-full bg-[#5F421A] transition-all duration-300 ease-out"
                     style={{ width: `${progress.progressPercent}%` }}
                   />
                 </div>

@@ -37,7 +37,7 @@ export function DocumentViewer({ document, selectedClause }: DocumentViewerProps
       {/* Top Document Header & Page Pagination */}
       <div className="flex items-center justify-between border-b border-border/80 bg-parchment/60 px-4 py-3 sm:px-6">
         <div className="flex items-center space-x-2.5 overflow-hidden">
-          <FileText className="h-4 w-4 shrink-0 text-[#B08D57]" />
+          <FileText className="h-4 w-4 shrink-0 text-[#684B1E]" />
           <span className="truncate font-serif text-sm font-semibold text-primary">
             {document.filename}
           </span>
@@ -79,7 +79,7 @@ export function DocumentViewer({ document, selectedClause }: DocumentViewerProps
 
       {/* Selected Clause Notice Banner */}
       {selectedClause && selectedClause.page === currentPage && (
-        <div className="flex items-center justify-between border-b border-[#B08D57]/30 bg-[#FAF4E8] px-4 py-2 text-xs text-[#9C7945]">
+        <div className="flex items-center justify-between border-b border-[#B08D57]/30 bg-[#FAF4E8] px-4 py-2 text-xs text-[#684B1E]">
           <div className="flex items-center space-x-1.5 truncate">
             <Bookmark className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate font-semibold">

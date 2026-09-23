@@ -65,7 +65,7 @@ export function ClauseCard({
 
         {/* Analytical Rationale */}
         <div className="space-y-1 text-xs">
-          <span className="font-mono uppercase tracking-wider text-[#B08D57]">Legal Context:</span>
+          <span className="font-mono uppercase tracking-wider text-[#684B1E]">Legal Context:</span>
           <p className="leading-relaxed text-muted-foreground">{clause.rationale}</p>
         </div>
       </CardContent>
@@ -102,7 +102,7 @@ export function ClauseCard({
           >
             {isFlaggedForLawyer ? (
               <>
-                <BookmarkCheck className="mr-1.5 h-3.5 w-3.5 text-[#B08D57]" />
+                <BookmarkCheck className="mr-1.5 h-3.5 w-3.5 text-[#684B1E]" />
                 In Lawyer Memo
               </>
             ) : (

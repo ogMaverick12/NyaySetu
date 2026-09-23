@@ -145,7 +145,7 @@ export function NegotiationEmailWorkspace({
 
       {/* Safety & User Control Advisory */}
       <div className="mt-4 flex items-center gap-2 rounded-md border border-[#D8C6A5]/60 bg-[#FAF3E8] p-2.5 text-xs text-[#684B1E]">
-        <Info className="h-4 w-4 shrink-0 text-[#B08D57]" aria-hidden="true" />
+        <Info className="h-4 w-4 shrink-0 text-[#684B1E]" aria-hidden="true" />
         <p>
           <strong>Fully Editable &amp; Private:</strong> NyaySetu never sends emails autonomously.
           You can edit any line directly below before copying or opening in your mail app.
@@ -177,7 +177,7 @@ export function NegotiationEmailWorkspace({
       {isGenerating && (
         <div className="mt-6 space-y-3 rounded-lg border border-[#E0D7C6] bg-white/70 p-6 text-center">
           <RefreshCw
-            className={`mx-auto h-6 w-6 text-[#B08D57] ${
+            className={`mx-auto h-6 w-6 text-[#684B1E] ${
               prefersReducedMotion ? "" : "animate-spin"
             }`}
             aria-hidden="true"
@@ -219,7 +219,7 @@ export function NegotiationEmailWorkspace({
               value={subject}
               onChange={(e) => updateSubject(e.target.value)}
               placeholder="e.g. Clarification and proposed adjustments for lease agreement"
-              className="w-full rounded-md border border-[#E0D7C6] bg-white px-3 py-2 text-xs font-medium text-[#1B2430] placeholder:text-[#525D6B]/60 focus:border-[#B08D57] focus:outline-none focus:ring-1 focus:ring-[#B08D57]"
+              className="w-full rounded-md border border-[#E0D7C6] bg-white px-3 py-2 text-xs font-medium text-[#1B2430] placeholder:text-[#525D6B]/60 focus:border-[#5F421A] focus:outline-none focus:ring-1 focus:ring-[#5F421A]"
             />
           </div>
 
@@ -242,7 +242,7 @@ export function NegotiationEmailWorkspace({
               value={body}
               onChange={(e) => updateBody(e.target.value)}
               aria-label="Editable negotiation email message body"
-              className="w-full rounded-md border border-[#E0D7C6] bg-white p-3 font-sans text-xs leading-relaxed text-[#1B2430] placeholder:text-[#525D6B]/60 focus:border-[#B08D57] focus:outline-none focus:ring-1 focus:ring-[#B08D57]"
+              className="w-full rounded-md border border-[#E0D7C6] bg-white p-3 font-sans text-xs leading-relaxed text-[#1B2430] placeholder:text-[#525D6B]/60 focus:border-[#5F421A] focus:outline-none focus:ring-1 focus:ring-[#5F421A]"
             />
           </div>
 
@@ -304,7 +304,7 @@ export function NegotiationEmailWorkspace({
                 href={mailtoUri}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="shadow-xs inline-flex items-center gap-1.5 rounded-md bg-[#B08D57] px-3.5 py-2 font-mono text-xs font-semibold text-[#FAF8F3] transition-colors hover:bg-[#9C7945] focus:outline-none focus:ring-2 focus:ring-[#B08D57] focus:ring-offset-2"
+                className="shadow-xs inline-flex items-center gap-1.5 rounded-md bg-[#5F421A] px-3.5 py-2 font-mono text-xs font-semibold text-[#FAF8F3] transition-colors hover:bg-[#4E3515] focus:outline-none focus:ring-2 focus:ring-[#5F421A] focus:ring-offset-2"
                 aria-label="Open draft in default mail client"
               >
                 <ExternalLink className="h-3.5 w-3.5" />

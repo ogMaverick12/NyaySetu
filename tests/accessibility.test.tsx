@@ -11,6 +11,8 @@ import {
 } from "@/features/accessibility";
 import { RedlineCard } from "@/features/compare/components/redline-card";
 import { type ComparisonDifference } from "@/features/compare/types";
+import { Button } from "@/ui/button";
+import { Badge } from "@/ui/badge";
 
 describe("Accessibility & Trust Suite (WCAG 2.1 AA, Contrast, Screen Readers, i18n)", () => {
   describe("1. Mathematical Contrast Verification (WCAG AA & AAA)", () => {
@@ -41,6 +43,40 @@ describe("Accessibility & Trust Suite (WCAG 2.1 AA, Contrast, Screen Readers, i1
       const ratio = getContrastRatio(inkNavy, parchment);
       expect(ratio).toBeGreaterThan(11.0);
       expect(meetsWcagAA(inkNavy, parchment)).toBe(true);
+    });
+
+    it("verifies brass button pairing (cream #FAF8F3 on #5F421A, hover #4E3515) passes WCAG AA", () => {
+      // ui/button.tsx brass variant + negotiation-email-workspace CTA
+      expect(meetsWcagAA("#FAF8F3", tokens.colors.brass.interactive)).toBe(true);
+      expect(meetsWcagAA("#FAF8F3", tokens.colors.brass.interactiveHover)).toBe(true);
+      expect(getContrastRatio("#FAF8F3", tokens.colors.brass.interactive)).toBeGreaterThanOrEqual(
+        7.0
+      );
+    });
+
+    it("verifies brass badge text (#684B1E on #FAF3E8) passes WCAG AA", () => {
+      // ui/badge.tsx brass variant
+      expect(meetsWcagAA(tokens.colors.brass.text, "#FAF3E8")).toBe(true);
+    });
+
+    it("verifies caution badge text (#6B450B on #FBF4E7) passes WCAG AA", () => {
+      // ui/badge.tsx caution variant + filter chips
+      expect(meetsWcagAA(tokens.colors.risk.caution.text, tokens.colors.risk.caution.light)).toBe(
+        true
+      );
+    });
+
+    it("verifies interactive brass as non-text UI (icons, rings, meter bars) passes 3:1", () => {
+      const parchment = tokens.colors.parchment.DEFAULT;
+      expect(getContrastRatio(tokens.colors.brass.interactive, parchment)).toBeGreaterThanOrEqual(
+        3.0
+      );
+      expect(meetsWcagAA(tokens.colors.brass.interactive, parchment, true)).toBe(true);
+      expect(meetsWcagAA(tokens.colors.risk.caution.text, parchment, true)).toBe(true);
+    });
+
+    it("verifies dark-mode accent (#C49A3C on #151C26) passes WCAG AA", () => {
+      expect(meetsWcagAA("#C49A3C", "#151C26")).toBe(true);
     });
   });
 
@@ -127,6 +163,26 @@ describe("Accessibility & Trust Suite (WCAG 2.1 AA, Contrast, Screen Readers, i1
       const { container } = render(
         <main>
           <RedlineCard difference={sampleDiff} />
+        </main>
+      );
+
+      const results = await axe.run(container, {
+        runOnly: {
+          type: "tag",
+          values: ["wcag2a", "wcag2aa"],
+        },
+      });
+
+      expect(results.violations).toEqual([]);
+    });
+
+    it("runs axe-core on remediated brass controls with no WCAG AA violations", async () => {
+      const { container } = render(
+        <main>
+          <h1>Brass controls</h1>
+          <Button variant="brass">Select File from Device</Button>
+          <Badge variant="brass">Gemini Antigravity</Badge>
+          <Badge variant="caution">Requires Review</Badge>
         </main>
       );
 

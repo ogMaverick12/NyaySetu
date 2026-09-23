@@ -19,11 +19,16 @@ export const tokens = {
       border: "#E0D7C6",
     },
     brass: {
-      DEFAULT: "#B08D57",
-      hover: "#9C7945",
+      DEFAULT: "#B08D57", // Decorative only (borders, washes) — 2.79:1 on parchment, NOT for text/icons
+      hover: "#9C7945", // Legacy — do not use for text (3.62:1, fails AA)
       light: "#E8DFD0",
-      text: "#684B1E", // High-contrast brass on parchment (WCAG AAA >= 7:1)
+      text: "#684B1E", // High-contrast brass on parchment (7.26:1, WCAG AAA)
       dark: "#684B1E",
+      // Interactive fills (buttons, focus rings, meter bars, progress). Same gold
+      // hue, darkened until cream text on top passes AAA and the fill itself
+      // passes 3:1 as non-text UI on parchment.
+      interactive: "#5F421A", // 8.31:1 on parchment; cream #FAF8F3 on top: 8.68:1
+      interactiveHover: "#4E3515", // 10.28:1 on parchment; cream on top: 10.73:1
     },
     risk: {
       low: {
@@ -33,10 +38,12 @@ export const tokens = {
         label: "Low Risk",
       },
       caution: {
-        DEFAULT: "#C08A2E",
+        DEFAULT: "#C08A2E", // Decorative only (left borders, glows) — 2.74:1, NOT for text
         light: "#FBF4E7",
         border: "#E5C88D",
         label: "Caution",
+        // Text/icon variant on light caution backgrounds (7.74:1 on #FBF4E7).
+        text: "#6B450B",
       },
       high: {
         DEFAULT: "#8C2F39",

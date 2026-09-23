@@ -151,7 +151,7 @@ export function MarginNotesColumn({
             type="button"
             onClick={() => setActiveFilter("caution")}
             className={`flex items-center rounded px-2.5 py-1 text-xs font-medium transition-colors ${
-              activeFilter === "caution" ? "bg-[#C08A2E] text-white" : "bg-[#FBF4E7] text-[#C08A2E]"
+              activeFilter === "caution" ? "bg-[#6B450B] text-white" : "bg-[#FBF4E7] text-[#6B450B]"
             }`}
           >
             <AlertTriangle className="mr-1 h-3 w-3" />
@@ -178,7 +178,7 @@ export function MarginNotesColumn({
         {extractionStatus === "extracting" && (
           <div className="flex h-full flex-col items-center justify-center gap-4 py-16 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#B08D57]/10">
-              <RefreshCw className="h-6 w-6 animate-spin text-[#B08D57]" />
+              <RefreshCw className="h-6 w-6 animate-spin text-[#684B1E]" />
             </div>
             <div className="space-y-1">
               <p className="font-serif text-sm font-semibold text-primary">
@@ -195,7 +195,7 @@ export function MarginNotesColumn({
         {extractionStatus !== "extracting" && clauses.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center gap-4 py-16 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
-              <FileSearch className="h-6 w-6 text-[#B08D57]" />
+              <FileSearch className="h-6 w-6 text-[#684B1E]" />
             </div>
             <div className="space-y-1">
               <p className="font-serif text-sm font-semibold text-primary">No margin notes yet</p>
@@ -229,7 +229,7 @@ export function MarginNotesColumn({
                   }
                 }}
                 aria-label={`Inspect clause ${clause.type} on page ${clause.page}`}
-                className={`cursor-pointer rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D57] ${
+                className={`cursor-pointer rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5F421A] ${
                   isSelected ? "scale-[1.01]" : ""
                 }`}
               >
@@ -237,7 +237,7 @@ export function MarginNotesColumn({
                   riskLevel={clause.riskLevel}
                   className={`transition-all ${
                     isSelected
-                      ? "bg-[#FAF7F0] shadow-md ring-2 ring-[#B08D57]"
+                      ? "bg-[#FAF7F0] shadow-md ring-2 ring-[#5F421A]"
                       : "hover:border-[#B08D57]/60"
                   }`}
                 >

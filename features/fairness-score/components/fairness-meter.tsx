@@ -13,13 +13,13 @@ const BAND_COLORS: Record<FairnessBand, { bar: string; glow: string; label: stri
     label: "Strong statutory & reciprocal balance",
   },
   fair: {
-    bar: tokens.colors.brass.DEFAULT,
-    glow: "rgba(176, 141, 87, 0.2)",
+    bar: tokens.colors.brass.interactive,
+    glow: "rgba(95, 66, 26, 0.25)",
     label: "Fair terms with standard provisions",
   },
   caution: {
-    bar: tokens.colors.risk.caution.DEFAULT,
-    glow: "rgba(192, 138, 46, 0.2)",
+    bar: tokens.colors.risk.caution.text,
+    glow: "rgba(107, 69, 11, 0.25)",
     label: "Caution advised — asymmetric clauses identified",
   },
   "needs-negotiation": {

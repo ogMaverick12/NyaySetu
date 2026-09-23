@@ -1,13 +1,29 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState, useMemo } from "react";
 import { type ParsedDocument } from "@/features/ingestion/types";
 import { type Clause, type DocumentType, detectDocumentType } from "@/features/extraction";
 import { generateLegalMemo } from "../services/checklist-generator";
-import { exportLegalMemoToPdf } from "../services/pdf-exporter";
+// jspdf is intentionally NOT statically imported here (~343KB stat / ~105KB
+// gzip). It loads only inside handleExportPdf on Download click, so opening
+// the Export tab never pays the PDF parse/compile cost.
 import { LawyerQuestionsCard } from "./lawyer-questions-card";
 import { useLawyerChecklist } from "../store/lawyer-checklist-store";
-import { NegotiationEmailWorkspace } from "@/features/negotiation-email";
+// Negotiation workspace is code-split behind the "Draft Negotiation Email"
+// toggle — its LLM streaming hook + framer-motion usage stay out of both the
+// initial bundle and the memo screen chunk until requested.
+const NegotiationEmailWorkspace = dynamic(
+  () => import("@/features/negotiation-email").then((mod) => mod.NegotiationEmailWorkspace),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        Loading negotiation workspace…
+      </div>
+    ),
+  }
+);
 import { Button } from "@/ui/button";
 import { Download, Printer, Copy, Check, CheckCircle2, RefreshCw, Scale, Mail } from "lucide-react";
 
@@ -57,7 +73,11 @@ export function ChecklistMemoScreen({
   };
 
   const handleExportPdf = () => {
-    if (memo) exportLegalMemoToPdf(memo);
+    if (!memo) return;
+    // On-demand jspdf chunk: fetched only on explicit Download click.
+    void import("../services/pdf-exporter").then(({ exportLegalMemoToPdf }) =>
+      exportLegalMemoToPdf(memo)
+    );
   };
 
   const handlePrint = () => {
@@ -101,7 +121,7 @@ export function ChecklistMemoScreen({
       {/* Top Action Toolbar (Hidden in Print) */}
       <div className="flex flex-col gap-4 rounded-lg border border-[#E0D7C6] bg-[#FBF9F4] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between print:hidden">
         <div>
-          <span className="font-mono text-xs uppercase tracking-wider text-[#B08D57]">
+          <span className="font-mono text-xs uppercase tracking-wider text-[#684B1E]">
             Feature F6 · Automated Consultation Memo
           </span>
           <h2 className="font-serif text-lg text-[#1B2430]">
@@ -120,7 +140,7 @@ export function ChecklistMemoScreen({
             className="shadow-xs inline-flex items-center gap-1.5 rounded bg-[#1B2430] px-3.5 py-2 font-mono text-xs font-semibold text-[#F7F3EA] transition-colors hover:bg-[#111822] disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Export official PDF memo"
           >
-            <Download className="h-3.5 w-3.5 text-[#B08D57]" />
+            <Download className="h-3.5 w-3.5 text-[#684B1E]" />
             Download PDF
           </button>
 
@@ -167,7 +187,7 @@ export function ChecklistMemoScreen({
             aria-label="Draft a negotiation email"
             aria-expanded={showNegotiationEmail}
           >
-            <Mail className="h-3.5 w-3.5 text-[#B08D57]" />
+            <Mail className="h-3.5 w-3.5 text-[#684B1E]" />
             Draft Negotiation Email
           </button>
         </div>
@@ -187,7 +207,7 @@ export function ChecklistMemoScreen({
       {!isExtractionComplete ? (
         extractionStatus === "extracting" ? (
           <div className="shadow-xs space-y-4 rounded-xl border border-[#E0D7C6] bg-[#FDFBF7] p-12 text-center">
-            <RefreshCw className="mx-auto h-8 w-8 animate-spin text-[#B08D57]" />
+            <RefreshCw className="mx-auto h-8 w-8 animate-spin text-[#684B1E]" />
             <h3 className="font-serif text-base font-semibold text-[#1B2430]">
               Extracting Operative Clauses &amp; Assessing Risks...
             </h3>
@@ -200,7 +220,7 @@ export function ChecklistMemoScreen({
           </div>
         ) : (
           <div className="space-y-4 rounded-xl border-2 border-[#B08D57]/40 bg-[#FDFBF7] p-10 text-center shadow-sm">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#B08D57]/10 text-[#8C6D3B]">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#B08D57]/10 text-[#684B1E]">
               <Scale className="h-6 w-6" />
             </div>
             <div className="space-y-1.5">
@@ -228,7 +248,7 @@ export function ChecklistMemoScreen({
           {/* Letterhead Header */}
           <header className="space-y-4 border-b-2 border-[#1B2430] pb-6">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-xs font-semibold uppercase tracking-widest text-[#B08D57]">
+              <span className="font-mono text-xs font-semibold uppercase tracking-widest text-[#684B1E]">
                 NYAYSETU · CLINICAL PREPARATION MEMO
               </span>
               <span className="font-mono text-xs text-[#525D6B]">REF: {memo.caseReference}</span>
@@ -298,7 +318,7 @@ export function ChecklistMemoScreen({
                         {isChecked && <CheckCircle2 className="h-3.5 w-3.5 text-[#3F6C51]" />}
                       </span>
                       <div className="flex-1 text-xs leading-relaxed">
-                        <span className="mr-1.5 font-mono font-bold text-[#8C6D3B]">
+                        <span className="mr-1.5 font-mono font-bold text-[#684B1E]">
                           {idx + 1}.
                         </span>
                         <span className={isChecked ? "line-through" : ""}>{item.text}</span>

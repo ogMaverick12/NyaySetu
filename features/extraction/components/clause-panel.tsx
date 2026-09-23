@@ -103,8 +103,8 @@ export function ClausePanel({
             onClick={() => onFilterChange("caution")}
             className={`flex items-center rounded px-3 py-1.5 text-xs font-medium transition-colors ${
               activeFilter === "caution"
-                ? "bg-[#C08A2E] text-white"
-                : "bg-[#FBF4E7] text-[#C08A2E] hover:bg-[#F4E8D1]"
+                ? "bg-[#6B450B] text-white"
+                : "bg-[#FBF4E7] text-[#6B450B] hover:bg-[#F4E8D1]"
             }`}
           >
             <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />

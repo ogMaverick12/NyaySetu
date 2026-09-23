@@ -24,11 +24,11 @@ export function ReferenceChip({ citation, onJumpToPage }: ReferenceChipProps): J
           setIsOpen((prev) => !prev);
           if (onJumpToPage) onJumpToPage(citation.page);
         }}
-        className="inline-flex items-center gap-1.5 rounded border border-[#B08D57]/30 bg-[#B08D57]/10 px-2.5 py-1 font-mono text-xs text-[#8C6D3B] transition-colors hover:border-[#B08D57]/50 hover:bg-[#B08D57]/20 focus:outline-none focus:ring-2 focus:ring-[#B08D57]/30"
+        className="inline-flex items-center gap-1.5 rounded border border-[#B08D57]/30 bg-[#B08D57]/10 px-2.5 py-1 font-mono text-xs text-[#684B1E] transition-colors hover:border-[#B08D57]/50 hover:bg-[#B08D57]/20 focus:outline-none focus:ring-2 focus:ring-[#5F421A]"
         aria-expanded={isOpen}
         aria-label={`Citation: Page ${citation.page}, ${citation.clauseTitle || "clause excerpt"}`}
       >
-        <BookOpen className="h-3 w-3 text-[#B08D57]" aria-hidden="true" />
+        <BookOpen className="h-3 w-3 text-[#684B1E]" aria-hidden="true" />
         <span>[{label}]</span>
       </button>
 
@@ -39,7 +39,7 @@ export function ReferenceChip({ citation, onJumpToPage }: ReferenceChipProps): J
           className="absolute bottom-full left-0 z-20 mb-2 w-80 max-w-[90vw] rounded border border-[#E0D7C6] bg-[#FDFBF7] p-3 font-sans text-xs text-[#1B2430] shadow-lg"
         >
           <div className="mb-1.5 flex items-center justify-between border-b border-[#E0D7C6] pb-1.5">
-            <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#8C6D3B]">
+            <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#684B1E]">
               Verbatim Excerpt · Page {citation.page}
             </span>
             <button

@@ -32,7 +32,7 @@ export function AccessibilityBar({ onDataDeleted }: AccessibilityBarProps = {}):
       {/* Skip to Main Content Link (WCAG 2.4.1 Bypass Blocks) */}
       <a
         href="#main-content"
-        className="sr-only font-mono text-xs font-semibold focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-[#1B2430] focus:px-4 focus:py-2 focus:text-[#F7F3EA] focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#B08D57]"
+        className="sr-only font-mono text-xs font-semibold focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-[#1B2430] focus:px-4 focus:py-2 focus:text-[#F7F3EA] focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#5F421A]"
       >
         {t.accessibility.skipToContent}
       </a>
@@ -56,7 +56,7 @@ export function AccessibilityBar({ onDataDeleted }: AccessibilityBarProps = {}):
                 type="button"
                 onClick={() => setLanguage(lang.code)}
                 aria-pressed={language === lang.code}
-                className={`rounded border px-2 py-0.5 text-[11px] font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-[#B08D57] ${
+                className={`rounded border px-2 py-0.5 text-[11px] font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-[#5F421A] ${
                   language === lang.code
                     ? "border-[#1B2430] bg-[#1B2430] text-[#F7F3EA]"
                     : "border-[#E0D7C6] bg-white text-[#1B2430] hover:bg-[#EFE8DC]"
@@ -81,7 +81,7 @@ export function AccessibilityBar({ onDataDeleted }: AccessibilityBarProps = {}):
             type="button"
             onClick={toggleLowBandwidth}
             aria-pressed={isLowBandwidth}
-            className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1 font-mono text-[11px] transition-colors focus:outline-none focus:ring-1 focus:ring-[#B08D57] ${
+            className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1 font-mono text-[11px] transition-colors focus:outline-none focus:ring-1 focus:ring-[#5F421A] ${
               isLowBandwidth
                 ? "border-[#3F6C51] bg-[#3F6C51] text-white"
                 : "border-[#E0D7C6] bg-white text-[#1B2430] hover:bg-[#EFE8DC]"
@@ -106,7 +106,7 @@ export function AccessibilityBar({ onDataDeleted }: AccessibilityBarProps = {}):
             aria-pressed={isDarkMode}
             aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
             title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-            className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1 font-mono text-[11px] transition-colors focus:outline-none focus:ring-1 focus:ring-[#B08D57] ${
+            className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1 font-mono text-[11px] transition-colors focus:outline-none focus:ring-1 focus:ring-[#5F421A] ${
               isDarkMode
                 ? "border-[#C49A3C] bg-[#1D2535] text-[#C49A3C]"
                 : "border-[#E0D7C6] bg-white text-[#1B2430] hover:bg-[#EFE8DC]"

@@ -25,7 +25,7 @@ export function LawyerQuestionsCard({ questions }: LawyerQuestionsCardProps): JS
       {/* Section Header */}
       <div className="flex items-center justify-between border-b border-[#E0D7C6] pb-3">
         <div className="flex items-center gap-2">
-          <div className="rounded bg-[#B08D57]/10 p-1.5 text-[#8C6D3B]">
+          <div className="rounded bg-[#B08D57]/10 p-1.5 text-[#684B1E]">
             <Scale className="h-4 w-4" />
           </div>
           <div>
@@ -54,7 +54,7 @@ export function LawyerQuestionsCard({ questions }: LawyerQuestionsCardProps): JS
             className="group flex items-start justify-between gap-3 rounded border border-[#E0D7C6] bg-white p-3.5 transition-colors hover:border-[#B08D57]/60"
           >
             <div className="flex items-start gap-2.5">
-              <span className="mt-0.5 shrink-0 font-mono text-xs font-bold text-[#8C6D3B]">
+              <span className="mt-0.5 shrink-0 font-mono text-xs font-bold text-[#684B1E]">
                 Q{idx + 1}.
               </span>
               <div className="space-y-1">

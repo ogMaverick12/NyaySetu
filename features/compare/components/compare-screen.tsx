@@ -180,7 +180,7 @@ export function CompareScreen({
             >
               <div className="mb-1 flex items-center justify-between">
                 <span className="flex items-center text-xs font-semibold text-primary">
-                  <Building2 className="mr-1.5 h-3.5 w-3.5 text-[#B08D57]" />
+                  <Building2 className="mr-1.5 h-3.5 w-3.5 text-[#684B1E]" />
                   Residential Tenancy
                 </span>
                 <Badge variant="brass" className="text-[10px]">
@@ -206,7 +206,7 @@ export function CompareScreen({
             >
               <div className="mb-1 flex items-center justify-between">
                 <span className="flex items-center text-xs font-semibold text-primary">
-                  <Bike className="mr-1.5 h-3.5 w-3.5 text-[#B08D57]" />
+                  <Bike className="mr-1.5 h-3.5 w-3.5 text-[#684B1E]" />
                   Gig Delivery Partner
                 </span>
                 <Badge variant="brass" className="text-[10px]">
@@ -232,7 +232,7 @@ export function CompareScreen({
             >
               <div className="mb-1 flex items-center justify-between">
                 <span className="flex items-center text-xs font-semibold text-primary">
-                  <Briefcase className="mr-1.5 h-3.5 w-3.5 text-[#B08D57]" />
+                  <Briefcase className="mr-1.5 h-3.5 w-3.5 text-[#684B1E]" />
                   Employment Offer
                 </span>
                 <Badge variant="brass" className="text-[10px]">
@@ -253,7 +253,7 @@ export function CompareScreen({
         {/* Provenance note & Enforceability Advisory */}
         <div className="flex flex-col gap-1.5 border-t border-border/60 pt-3">
           <div className="flex items-center font-mono text-[11px] text-muted-foreground">
-            <Scale className="mr-1.5 h-3.5 w-3.5 shrink-0 text-[#B08D57]" />
+            <Scale className="mr-1.5 h-3.5 w-3.5 shrink-0 text-[#684B1E]" />
             <span>
               Baseline Reference:{" "}
               <span className="font-medium text-primary">{activeBaseline.sourcedReference}</span>{" "}
@@ -261,7 +261,7 @@ export function CompareScreen({
             </span>
           </div>
           <div className="flex items-center text-xs text-[#684B1E]">
-            <Info className="mr-1.5 h-3.5 w-3.5 shrink-0 text-[#B08D57]" />
+            <Info className="mr-1.5 h-3.5 w-3.5 shrink-0 text-[#684B1E]" />
             <span>
               Note: This baseline is a fair-practice benchmark, not automatically enforceable
               everywhere (confirm your state&apos;s statutory adoption).
@@ -274,7 +274,7 @@ export function CompareScreen({
       {!isExtractionComplete ? (
         extractionStatus === "extracting" ? (
           <div className="shadow-xs space-y-3 rounded-lg border border-[#B08D57]/40 bg-[#FBF9F4] p-10 text-center">
-            <RefreshCw className="mx-auto h-8 w-8 animate-spin text-[#B08D57]" />
+            <RefreshCw className="mx-auto h-8 w-8 animate-spin text-[#684B1E]" />
             <h3 className="font-serif text-base font-semibold text-[#1B2430]">
               Extracting Operative Clauses...
             </h3>
@@ -287,7 +287,7 @@ export function CompareScreen({
           </div>
         ) : (
           <div className="space-y-4 rounded-lg border-2 border-[#B08D57]/40 bg-[#FBF9F4] p-8 text-center shadow-sm">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#B08D57]/10 text-[#8C6D3B]">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#B08D57]/10 text-[#684B1E]">
               <Scale className="h-6 w-6" />
             </div>
             <div className="space-y-1.5">
@@ -311,7 +311,7 @@ export function CompareScreen({
         )
       ) : isLoading ? (
         <div className="space-y-3 rounded border border-border bg-card p-12 text-center">
-          <RefreshCw className="mx-auto h-6 w-6 animate-spin text-[#B08D57]" />
+          <RefreshCw className="mx-auto h-6 w-6 animate-spin text-[#684B1E]" />
           <p className="font-serif text-sm font-medium text-primary">
             Generating tracked-changes redline comparison against {activeBaseline.title}...
           </p>
@@ -323,7 +323,7 @@ export function CompareScreen({
         <div className="space-y-5">
           {/* Baseline Benchmark Notice */}
           <div className="flex items-center gap-2 rounded-md border border-[#B08D57]/30 bg-[#FAF4E8] px-3.5 py-2.5 text-xs text-[#684B1E]">
-            <Info className="h-4 w-4 shrink-0 text-[#B08D57]" />
+            <Info className="h-4 w-4 shrink-0 text-[#684B1E]" />
             <p>
               <span className="font-semibold">Benchmark Advisory:</span> This baseline is a
               fair-practice benchmark, not automatically enforceable everywhere. Confirm your

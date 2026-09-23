@@ -39,7 +39,7 @@ export function TranscriptEntry({
       {/* Transcript Item Meta Header */}
       <div className="flex items-center justify-between border-b border-[#E0D7C6]/60 pb-3 text-xs">
         <div className="flex items-center gap-2">
-          <span className="font-mono font-semibold uppercase tracking-wider text-[#B08D57]">
+          <span className="font-mono font-semibold uppercase tracking-wider text-[#684B1E]">
             CONSULTATION RECORD · ENTRY #{formattedNumber}
           </span>
           <span className="text-[#8A94A1]">|</span>

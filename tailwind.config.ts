@@ -70,6 +70,7 @@ const config = {
           DEFAULT: "#B08D57",
           hover: "#9C7945",
           light: "#E8DFD0",
+          interactive: "#5F421A",
         },
         risk: {
           low: {

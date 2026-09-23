@@ -199,7 +199,7 @@ export function FairnessScoreCard({
         {isPartial ? (
           <div className="flex flex-col items-start justify-between gap-3 rounded-md border border-[#E5C88D] bg-[#FBF4E7] p-3 text-xs text-[#6B450B] sm:flex-row sm:items-center">
             <div className="flex items-center gap-2">
-              <Info className="h-4 w-4 shrink-0 text-[#C08A2E]" aria-hidden="true" />
+              <Info className="h-4 w-4 shrink-0 text-[#6B450B]" aria-hidden="true" />
               <span>
                 <strong className="font-semibold">Partial score</strong> — clause-based only. Run
                 Compare for the full picture.
