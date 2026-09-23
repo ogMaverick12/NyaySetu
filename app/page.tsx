@@ -13,12 +13,55 @@ import { fadeIn, slideUp, clauseContainer, clauseCardReveal } from "@/motion-var
 import { ShieldAlert, ArrowRight, CheckCircle2, AlertTriangle } from "lucide-react";
 import { NyaySetuLogo } from "@/components/nyaysetu-logo";
 
+import dynamic from "next/dynamic";
 import { IntakeDesk, type ParsedDocument } from "@/features/ingestion";
 import { ClausePanel, useClauseExtraction } from "@/features/extraction";
-import { DocumentAnalysisScreen } from "@/features/document-analysis";
-import { CompareScreen } from "@/features/compare";
-import { ConsultationTranscriptPanel } from "@/features/qa-chat";
-import { ChecklistMemoScreen, lawyerChecklistStore } from "@/features/checklist-export";
+// Below-fold workflow views are code-split so they never enter the initial
+// first-paint bundle (hero + intake desk only). Each loads on tab activation.
+// jspdf (via ChecklistMemoScreen) and compare/QA stacks therefore stay out of
+// vendor.js / page.js until actually needed.
+const DocumentAnalysisScreen = dynamic(
+  () => import("@/features/document-analysis").then((mod) => mod.DocumentAnalysisScreen),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
+        Loading split-view analysis…
+      </div>
+    ),
+  }
+);
+const CompareScreen = dynamic(() => import("@/features/compare").then((mod) => mod.CompareScreen), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
+      Loading compare mode…
+    </div>
+  ),
+});
+const ConsultationTranscriptPanel = dynamic(
+  () => import("@/features/qa-chat").then((mod) => mod.ConsultationTranscriptPanel),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
+        Loading consultation…
+      </div>
+    ),
+  }
+);
+const ChecklistMemoScreen = dynamic(
+  () => import("@/features/checklist-export").then((mod) => mod.ChecklistMemoScreen),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
+        Loading legal memo…
+      </div>
+    ),
+  }
+);
+import { lawyerChecklistStore } from "@/features/checklist-export";
 import { FairnessScoreCard, fairnessStore } from "@/features/fairness-score";
 import { negotiationEmailStore } from "@/features/negotiation-email";
 import {

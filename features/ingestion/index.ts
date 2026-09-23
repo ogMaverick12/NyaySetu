@@ -7,12 +7,10 @@ export {
   type RawPageInput,
   type BuildParsedDocumentParams,
 } from "./services/normalizer";
-export {
-  extractDocumentContent,
-  extractTextFromPdf,
-  extractTextFromImage,
-  type ExtractionResult,
-} from "./services/extractor";
+// NOTE: server-only extractor (unpdf + tesseract.js) is intentionally NOT
+// re-exported here. Import it directly via
+// "@/features/ingestion/services/extractor" from API routes only, so the
+// heavy native-PDF/OCR stack never enters the client first-paint bundle.
 export {
   type ParsedDocument,
   type PageContent,
